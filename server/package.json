@@ -4,8 +4,8 @@
   "description": "Backend server for LeetLabs - a coding platform for practicing and evaluating DSA skills.",
   "main": "src/index.js",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
   },
   "author": "Shreyansh Pandit",
   "license": "MIT",
@@ -21,6 +21,8 @@
   "type": "module",
   "dependencies": {
     "@prisma/client": "^6.6.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "prisma": "^6.6.0"
   }
 }
