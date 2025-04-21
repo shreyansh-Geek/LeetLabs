@@ -1,3 +1,5 @@
 node_modules
+# Prisma generated folder
+/src/generated/
 # Keep environment variables out of version control
 .env
