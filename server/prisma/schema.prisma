@@ -29,6 +29,7 @@ model User {
   password String
   isemailVerified Boolean @default(false)
   verificationToken String?
+  verificationTokenExpiry DateTime?
   resetPasswordToken String?
   resetPasswordTokenExpiry DateTime?
   refreshToken String?

@@ -3,6 +3,9 @@ import { db } from "../utils/db.js";
 import { UserRole } from "../generated/prisma/index.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { sendMail } from "../utils/mailer.js";
+import {
+  registrationMailTemplate} from "../utils/mailTemplates.js";
 
 export const register = async (req, res) => {
   const { email, password, name } = req.body;
@@ -15,12 +18,19 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+
     const user = await db.user.create({
       data: {
         email: email,
         password: hashedPassword,
         name: name,
         role: UserRole.USER,
+        verificationToken: verificationToken,
+        verificationTokenExpiry: verificationTokenExpiry,
       },
     });
     if (!user) {
@@ -28,6 +38,16 @@ export const register = async (req, res) => {
         message: "User not created/registered",
       });
     }
+
+    const verificationLink = `${process.env.BASE_URL}/api/v1/auth/verifyUser/${verificationToken}`;
+
+    const template = registrationMailTemplate({ name, verificationLink });
+
+    await sendMail({
+      to: user.email,
+      subject: "LeetLabs Verification Email",
+      htmlMessage: template,
+    });
 
     return res.status(201).json({
       message: "User registered successfully",
@@ -45,6 +65,83 @@ export const register = async (req, res) => {
   }
 };
 
+export const verifyUser = async (req, res) => {
+  try {
+    const { verificationToken } = req.params;
+
+    if (!verificationToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Token not found",
+      });
+    }
+
+    const user = await db.user.findFirst({
+      where: { verificationToken },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found or already verified",
+      });
+    }
+
+    if (user.verificationTokenExpiry < new Date()) {
+      // Token expired -> Generate new token
+      const newVerificationToken = crypto.randomBytes(32).toString("hex");
+      const newVerificationTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10mins
+
+      await db.user.update({
+        where: { id: user.id },
+        data: {
+          verificationToken: newVerificationToken,
+          verificationTokenExpiry: newVerificationTokenExpiry,
+        },
+      });
+
+      const verificationLink = `${process.env.BASE_URL}/api/v1/auth/verifyUser/${newVerificationToken}`;
+      const template = registrationMailTemplate({
+        name: user.name,
+        verificationLink,
+      });
+
+      await sendMail({
+        to: user.email,
+        subject: "New Verification Email - LeetLabs",
+        html: template,
+      });
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "Token expired. A new verification email has been sent to your email address.",
+      });
+    }
+
+    // Token valid -> Verify user
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        isemailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "User verified successfully",
+    });
+  } catch (error) {
+    console.error("Verification Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 export const login = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -55,6 +152,12 @@ export const login = async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
+
+    if (!user.isemailVerified) {  
+      return res.status(400).json({  
+          message: "Please verify your email before logging in."  
+      });  
+  }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -75,7 +178,7 @@ export const login = async (req, res) => {
         expiresIn: process.env.REFRESHTOKEN_EXPIRY,
       }
     );
-    
+
     // Update refresh token in the database
     await db.user.update({
       where: { id: user.id },
@@ -115,7 +218,6 @@ export const login = async (req, res) => {
   }
 };
 
-
 export const logout = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -146,7 +248,6 @@ export const logout = async (req, res) => {
     res.status(500).json({ error: "Failed to log out" });
   }
 };
-
 
 export const check = async (req, res) => {
   try {
