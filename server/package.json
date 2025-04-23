@@ -26,6 +26,9 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "mailgen": "^2.0.29",
+    "mailtrap": "^4.1.0",
+    "nodemailer": "^6.10.1",
     "prisma": "^6.6.0"
   }
 }
