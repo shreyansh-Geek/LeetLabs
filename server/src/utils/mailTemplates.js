@@ -31,3 +31,23 @@ export const registrationMailTemplate = ({ name, verificationLink }) => {
 };
 
 
+// Template for Password Reset Email
+export const passwordResetMailTemplate = ({ name, resetLink }) => {
+  const email = {
+    body: {
+      name,
+      intro: `It seems like you requested a password reset.`,
+      action: {
+        instructions: 'Click the button below to reset your password. This link is valid for a limited time:',
+        button: {
+          color: '#DC4D2F', // Red
+          text: 'Reset Your Password',
+          link: resetLink,
+        },
+      },
+      outro: 'If you did not request a password reset, please ignore this email or contact support if you have questions.',
+    },
+  };
+
+  return mailGenerator.generate(email); // HTML content
+};
