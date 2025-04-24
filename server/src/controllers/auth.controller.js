@@ -5,7 +5,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { sendMail } from "../utils/mailer.js";
 import {
-  registrationMailTemplate} from "../utils/mailTemplates.js";
+  registrationMailTemplate, passwordResetMailTemplate} from "../utils/mailTemplates.js";
 
 export const register = async (req, res) => {
   const { email, password, name } = req.body;
@@ -109,7 +109,7 @@ export const verifyUser = async (req, res) => {
       await sendMail({
         to: user.email,
         subject: "New Verification Email - LeetLabs",
-        html: template,
+        htmlMessage: template,
       });
 
       return res.status(400).json({
@@ -278,5 +278,111 @@ export const check = async (req, res) => {
       message: "Something went wrong",
       success: false,
     });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  try {
+    const user = await db.user.findUnique({ where: { email: email } });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    const resetPasswordToken = crypto.randomBytes(32).toString("hex");
+    const resetPasswordTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: resetPasswordToken,
+        resetPasswordTokenExpiry: resetPasswordTokenExpiry,
+      },
+    });
+    const resetLink = `${process.env.BASE_URL}/api/v1/auth/resetPassword/${resetPasswordToken}`;
+    const mail = passwordResetMailTemplate({
+      name: user.name,
+      resetLink: resetLink,
+    });
+    await sendMail({
+      to: user.email,
+      subject: "LeetLabs Reset Password Link",
+      htmlMessage: mail,
+    });
+    return res.status(200).json({ message: "Email sent successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  const { resetPasswordToken } = req.params;
+  const { newpassword } = req.body;
+
+  if (!resetPasswordToken) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  if (!newpassword) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    const user = await db.user.findFirst({
+      where: { resetPasswordToken: resetPasswordToken },
+    });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    
+    if (user.resetPasswordTokenExpiry  < new Date()) {
+      // Token expired -> Generate new token
+      const newResetPasswordToken = crypto.randomBytes(32).toString("hex");
+      const newResetPasswordTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10mins
+
+      await db.user.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordToken: newResetPasswordToken,
+          resetPasswordTokenExpiry: newResetPasswordTokenExpiry,
+        },
+      });
+
+      const resetLink = `${process.env.BASE_URL}/api/v1/auth/resetPassword/${newResetPasswordToken}`;
+      const mail = passwordResetMailTemplate({
+        name: user.name,
+        resetLink,
+      });
+
+      await sendMail({
+        to: user.email,
+        subject: "New Verification Email - LeetLabs",
+        htmlMessage: mail,
+      });
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "Token expired. A new verification email has been sent to your email address.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newpassword, 10);
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordTokenExpiry: null,
+      },
+    });
+    return res.status(200).json({ message: "Password reset successfully", success: true });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Something went wrong", success: false });
   }
 };
