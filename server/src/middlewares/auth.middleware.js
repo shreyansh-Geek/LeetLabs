@@ -146,3 +146,26 @@ export const isAuthenticated = async (req, res, next) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+export const checkAdmin = async (req, res, next) => {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        role: true,
+      }
+    });
+
+    if (!user || user.role !== "admin") {
+      return res.status(401).json({
+        success: false,
+        message: "Access Denied! Admins Only Allowed",
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error("Error in checkAdmin middleware:", error.message);
+    res.status(500).json({ message: "Internal Server Error in checking admin role" });
+  }
+};
