@@ -224,6 +224,36 @@ export const updateProblemById = async (req, res) => {
   }
 };
 
-export const deleteProblemById = async (req, res) => {};
+export const deleteProblemById = async (req, res) => {
+  const { id } = req.params;
+  if (req.user.role !== "ADMIN") {
+    return res
+      .status(401)
+      .json({ error: "You are not authorized to delete a problem" });
+  }
+
+  try {
+    const problem = await db.problem.delete({
+      where: { id },
+    });
+    if (!problem) {
+      return res.status(404).json({ error: "Problem not found" });
+    }
+
+    await db.problem.delete({
+      where: { id },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Problem Deleted Successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      error: "Error While Deleting Problem",
+    });
+  }
+};
 
 export const getAllProblemsSolvedByUser = async (req, res) => {};
