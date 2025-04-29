@@ -38,12 +38,16 @@ export const isAuthenticated = async (req, res, next) => {
         }
 
         const newAccessToken = jwt.sign(
-            { id: user.id },
+            { id: user.id,
+              role: user.role
+             },
             process.env.ACCESSTOKEN_SECRET,
             { expiresIn: process.env.ACCESSTOKEN_EXPIRY }
           );
           const newRefreshToken = jwt.sign(
-            { id: user.id },
+            { id: user.id,
+              role: user.role
+             },
             process.env.REFRESHTOKEN_SECRET,
             {
               expiresIn: process.env.REFRESHTOKEN_EXPIRY,
@@ -102,12 +106,16 @@ export const isAuthenticated = async (req, res, next) => {
       }
 
       const newAccessToken = jwt.sign(
-        { id: user.id },
+        { id: user.id,
+          role: user.role
+         },
         process.env.ACCESSTOKEN_SECRET,
         { expiresIn: process.env.ACCESSTOKEN_EXPIRY }
       );
       const newRefreshToken = jwt.sign(
-        { id: user.id },
+        { id: user.id,
+          role: user.role
+         },
         process.env.REFRESHTOKEN_SECRET,
         {
           expiresIn: process.env.REFRESHTOKEN_EXPIRY,
@@ -156,7 +164,7 @@ export const checkAdmin = async (req, res, next) => {
       }
     });
 
-    if (!user || user.role !== "admin") {
+    if (!user || user.role !== "ADMIN") {
       return res.status(401).json({
         success: false,
         message: "Access Denied! Admins Only Allowed",
