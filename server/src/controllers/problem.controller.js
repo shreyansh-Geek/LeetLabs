@@ -227,13 +227,11 @@ export const updateProblemById = async (req, res) => {
 export const deleteProblemById = async (req, res) => {
   const { id } = req.params;
   if (req.user.role !== "ADMIN") {
-    return res
-      .status(401)
-      .json({ error: "You are not authorized to delete a problem" });
+    return res.status(401).json({ error: "You are not authorized to delete a problem" });
   }
 
   try {
-    const problem = await db.problem.delete({
+    const problem = await db.problem.findUnique({
       where: { id },
     });
     if (!problem) {
