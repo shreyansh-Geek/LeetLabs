@@ -23,6 +23,29 @@ export const getJudge0LanguageId = async (language) => {
         return null;
     }
 };
+
+export const getJudge0LanguageName = async (languageId) => {
+    try {
+        console.log("JUDGE0_BASE_URL:", process.env.JUDGE0_BASE_URL);
+        const { data } = await axios.get(
+            `${process.env.JUDGE0_BASE_URL}/languages?base64_encoded=false`
+        );
+
+        // Find language whose id matches the given languageId
+        const lang = data.find((lang) => lang.id === languageId);
+
+        if (!lang) {
+            throw new Error(`Language ID ${languageId} not found in Judge0`);
+        }
+
+        return lang.name;
+    } catch (error) {
+        console.log("Error getting language name:", error.message);
+        return null;
+    }
+};
+
+
 const sleep = (milliseconds) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
