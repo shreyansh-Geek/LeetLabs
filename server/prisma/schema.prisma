@@ -26,6 +26,11 @@ enum Difficulty {
   HARD
 }
 
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
 model User {
   id String @id @default(uuid())
   name String?
@@ -46,6 +51,8 @@ model User {
   problems Problem[]
   submission Submission[]
   problemSolved ProblemSolved[]
+
+  sheets Sheet[]
 }
 
 model Problem {
@@ -127,4 +134,24 @@ model ProblemSolved {
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@unique([userId, problemId])
+}
+
+model Sheet {
+  id String @id @default(uuid())
+  name String
+  description String?
+  visibility Visibility @default(PRIVATE)
+  creatorId String
+  tags String[] // e.g., ["dp", "medium", "amazon"]
+  problems String[] // Array of Problem IDs
+  isCloned Boolean @default(false)
+  clonedFromId String? // ID of original sheet (if cloned)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  clonedFrom Sheet? @relation("ClonedSheets", fields: [clonedFromId], references: [id], onDelete: SetNull)
+  clones Sheet[] @relation("ClonedSheets")
+
+  @@index([visibility, tags]) // For fast public sheet filtering
 }
