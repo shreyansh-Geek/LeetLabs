@@ -171,3 +171,12 @@ model FeaturedSheet {
 
   @@index([sheetId])
 }
+
+model Tag {
+  id String @id @default(uuid())
+  name String @unique // e.g., "dp", "amazon", "tcs"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name]) // For fast tag lookups
+}
