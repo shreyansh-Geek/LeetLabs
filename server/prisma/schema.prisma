@@ -53,6 +53,7 @@ model User {
   problemSolved ProblemSolved[]
 
   sheets Sheet[]
+  featuredSheets FeaturedSheet[]
 }
 
 model Problem {
@@ -152,6 +153,21 @@ model Sheet {
   creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   clonedFrom Sheet? @relation("ClonedSheets", fields: [clonedFromId], references: [id], onDelete: SetNull)
   clones Sheet[] @relation("ClonedSheets")
+  featured FeaturedSheet?
 
   @@index([visibility, tags]) // For fast public sheet filtering
+}
+
+model FeaturedSheet {
+  id String @id @default(uuid())
+  sheetId String @unique
+  pinnedByAdmin String
+  isRecommended Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sheet Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  admin User @relation(fields: [pinnedByAdmin], references: [id], onDelete: Cascade)
+
+  @@index([sheetId])
 }
