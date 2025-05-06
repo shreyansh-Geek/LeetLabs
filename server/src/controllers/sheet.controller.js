@@ -65,78 +65,58 @@ export const createSheet = async (req, res) => {
 };
 
 export const getSheet = async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.id;
-  const { page = 1, limit = 20 } = req.query; // Pagination parameters
-  const skip = (Number(page) - 1) * Number(limit);
-
-  try {
-    // Fetch sheet with creator
-    const sheet = await db.sheet.findUnique({
-      where: { id },
-      include: { creator: { select: { name: true } } },
-    });
-
-    if (!sheet) {
-      return res.status(404).json({ error: 'Sheet not found' });
-    }
-
-    if (sheet.visibility === 'PRIVATE' && sheet.creatorId !== userId) {
-      return res.status(403).json({ error: 'Unauthorized to view this sheet' });
-    }
-
-    // Paginate problems
-    const totalProblems = sheet.problems.length;
-    const paginatedProblemIds = sheet.problems.slice(skip, skip + Number(limit));
-
-    const problems = paginatedProblemIds.length > 0
-      ? await db.problem.findMany({
-          where: { id: { in: paginatedProblemIds } },
-          select: {
-            id: true,
-            title: true,
-            difficulty: true,
-            tags: true,
-            description: true,
+    const { id } = req.params;
+    const userId = req.user.id;
+  
+    try {
+      const sheet = await db.sheet.findUnique({
+        where: { id },
+        include: { creator: { select: { name: true } } },
+      });
+  
+      if (!sheet) {
+        return res.status(404).json({ error: 'Sheet not found' });
+      }
+  
+      if (sheet.visibility === 'PRIVATE' && sheet.creatorId !== userId) {
+        return res.status(403).json({ error: 'Unauthorized to view this sheet' });
+      }
+  
+      // Calculate progress for entire sheet (without fetching problems)
+      const totalProblems = sheet.problems.length;
+      const solvedProblems = totalProblems > 0
+        ? await db.problemSolved.count({
+            where: {
+              userId,
+              problemId: { in: sheet.problems },
+            },
+          })
+        : 0;
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Sheet fetched successfully',
+        sheet: {
+          id: sheet.id,
+          name: sheet.name,
+          description: sheet.description,
+          visibility: sheet.visibility,
+          tags: sheet.tags,
+          creator: sheet.creator,
+          createdAt: sheet.createdAt,
+          totalProblems, // Include problem count for UI
+          progress: {
+            solved: solvedProblems,
+            total: totalProblems,
+            percentage: totalProblems > 0 ? (solvedProblems / totalProblems) * 100 : 0,
           },
-          orderBy: { id: 'asc' }, // Maintain order of problems
-        })
-      : [];
-
-    // Calculate progress for entire sheet
-    const solvedProblems = sheet.problems.length > 0
-      ? await db.problemSolved.count({
-          where: {
-            userId,
-            problemId: { in: sheet.problems },
-          },
-        })
-      : 0;
-
-    return res.status(200).json({
-      success: true,
-      message: 'Sheet fetched successfully',
-      sheet: {
-        ...sheet,
-        problems, // Paginated problems
-        problemsPagination: {
-          total: totalProblems,
-          page: Number(page),
-          limit: Number(limit),
-          totalPages: Math.ceil(totalProblems / Number(limit)),
         },
-        progress: {
-          solved: solvedProblems,
-          total: totalProblems,
-          percentage: totalProblems > 0 ? (solvedProblems / totalProblems) * 100 : 0,
-        },
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Error fetching sheet' });
-  }
-};
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Error fetching sheet' });
+    }
+  };
 
   export const updateSheet = async (req, res) => {
     const { id } = req.params;
@@ -256,19 +236,116 @@ export const getSheet = async (req, res) => {
     }
   };
 
+  export const getSheetProblems = async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+  
+    try {
+      // Fetch sheet to verify access and get problem IDs
+      const sheet = await db.sheet.findUnique({
+        where: { id },
+        select: { problems: true, visibility: true, creatorId: true },
+      });
+  
+      if (!sheet) {
+        return res.status(404).json({ error: 'Sheet not found' });
+      }
+  
+      if (sheet.visibility === 'PRIVATE' && sheet.creatorId !== userId) {
+        return res.status(403).json({ error: 'Unauthorized to view this sheet' });
+      }
+  
+      // Paginate problems
+      const totalProblems = sheet.problems.length;
+      const paginatedProblemIds = sheet.problems.slice(skip, skip + Number(limit));
+  
+      const problems = paginatedProblemIds.length > 0
+        ? await db.problem.findMany({
+            where: { id: { in: paginatedProblemIds } },
+            select: {
+              id: true,
+              title: true,
+              difficulty: true,
+              tags: true,
+              description: true,
+            },
+            orderBy: { id: 'asc' }, // Maintain order
+          })
+        : [];
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Sheet problems fetched successfully',
+        problems,
+        pagination: {
+          total: totalProblems,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil(totalProblems / Number(limit)),
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Error fetching sheet problems' });
+    }
+  };
+  
+
   export const getUserSheets = async (req, res) => {
     const userId = req.user.id;
   
     try {
       const sheets = await db.sheet.findMany({
         where: { creatorId: userId },
-        include: { creator: { select: { name: true } } },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          visibility: true,
+          tags: true,
+          createdAt: true,
+          problems: true, // Needed for totalProblems
+          creator: { select: { name: true } }, // Nested select for creator
+        },
       });
+  
+      // Transform sheets to include problem count and progress
+      const transformedSheets = await Promise.all(
+        sheets.map(async (sheet) => {
+          const totalProblems = sheet.problems.length;
+          const solvedProblems = totalProblems > 0
+            ? await db.problemSolved.count({
+                where: {
+                  userId,
+                  problemId: { in: sheet.problems },
+                },
+              })
+            : 0;
+  
+          return {
+            id: sheet.id,
+            name: sheet.name,
+            description: sheet.description,
+            visibility: sheet.visibility,
+            tags: sheet.tags,
+            creator: sheet.creator,
+            createdAt: sheet.createdAt,
+            totalProblems,
+            progress: {
+              solved: solvedProblems,
+              total: totalProblems,
+              percentage: totalProblems > 0 ? (solvedProblems / totalProblems) * 100 : 0,
+            },
+          };
+        })
+      );
   
       return res.status(200).json({
         success: true,
         message: 'User sheets fetched successfully',
-        sheets,
+        sheets: transformedSheets,
       });
     } catch (error) {
       console.error(error);
@@ -281,7 +358,6 @@ export const getSheet = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
   
     try {
-      // Build where clause for public sheets
       const where = {
         visibility: 'PUBLIC',
         ...(search && {
@@ -293,39 +369,48 @@ export const getSheet = async (req, res) => {
         }),
       };
   
-      // Fetch featured sheet IDs
       const featuredSheets = await db.featuredSheet.findMany({
         where: { isRecommended: true },
         select: { sheetId: true },
       });
       const featuredSheetIds = new Set(featuredSheets.map(fs => fs.sheetId));
   
-      // Fetch public sheets
       const sheets = await db.sheet.findMany({
         where,
-        include: {
-          creator: { select: { name: true } },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          visibility: true,
+          tags: true,
+          createdAt: true,
+          problems: true, // Needed for totalProblems
+          creator: { select: { name: true } }, // Nested select for creator
         },
         skip,
         take: Number(limit),
-        orderBy: { createdAt: 'desc' }, // Default sorting
+        orderBy: { createdAt: 'desc' },
       });
   
-      // Transform and sort sheets: prioritize featured sheets
+      // Transform sheets to include problem count and isRecommended
       const transformedSheets = sheets
         .map(sheet => ({
-          ...sheet,
-          isRecommended: featuredSheetIds.has(sheet.id), // Add isRecommended
+          id: sheet.id,
+          name: sheet.name,
+          description: sheet.description,
+          visibility: sheet.visibility,
+          tags: sheet.tags,
+          creator: sheet.creator,
+          createdAt: sheet.createdAt,
+          totalProblems: sheet.problems.length,
+          isRecommended: featuredSheetIds.has(sheet.id),
         }))
         .sort((a, b) => {
-          // Prioritize isRecommended: true
           if (a.isRecommended && !b.isRecommended) return -1;
           if (!a.isRecommended && b.isRecommended) return 1;
-          // Maintain createdAt order for equal isRecommended
           return new Date(b.createdAt) - new Date(a.createdAt);
         });
   
-      // Get total count for pagination
       const total = await db.sheet.count({ where });
   
       return res.status(200).json({
@@ -460,17 +545,33 @@ export const getSheet = async (req, res) => {
     try {
       const featuredSheets = await db.featuredSheet.findMany({
         where: { isRecommended: true },
-        include: {
+        select: {
           sheet: {
-            include: { creator: { select: { name: true } } },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              visibility: true,
+              tags: true,
+              createdAt: true,
+              problems: true, // Needed for totalProblems
+              creator: { select: { name: true } }, // Nested select for creator
+            },
           },
         },
       });
   
       const sheets = featuredSheets
-        .filter(fs => fs.sheet && fs.sheet.visibility === 'PUBLIC') // Filter public sheets
+        .filter(fs => fs.sheet && fs.sheet.visibility === 'PUBLIC')
         .map(fs => ({
-          ...fs.sheet,
+          id: fs.sheet.id,
+          name: fs.sheet.name,
+          description: fs.sheet.description,
+          visibility: fs.sheet.visibility,
+          tags: fs.sheet.tags,
+          creator: fs.sheet.creator,
+          createdAt: fs.sheet.createdAt,
+          totalProblems: fs.sheet.problems.length,
           isRecommended: true,
         }));
   
@@ -484,3 +585,4 @@ export const getSheet = async (req, res) => {
       return res.status(500).json({ error: 'Error fetching featured sheets' });
     }
   };
+  
