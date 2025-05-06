@@ -1,12 +1,13 @@
 import express from 'express';
 import { isAuthenticated, checkAdmin } from '../middlewares/auth.middleware.js';
-import { createSheet, getSheet, updateSheet, deleteSheet, getUserSheets, getPublicSheets, cloneSheet, pinSheet, unpinSheet } from '../controllers/sheet.controller.js';
+import { createSheet, getSheet, updateSheet, deleteSheet, getUserSheets, getPublicSheets, cloneSheet, pinSheet, unpinSheet, getFeaturedSheets } from '../controllers/sheet.controller.js';
 
 const sheetRoutes = express.Router();
 
 sheetRoutes.post('/create', isAuthenticated, createSheet);
 sheetRoutes.get('/public', isAuthenticated, getPublicSheets); 
 sheetRoutes.get('/user', isAuthenticated, getUserSheets);
+sheetRoutes.get('/featured', isAuthenticated, getFeaturedSheets);
 
 sheetRoutes.get('/:id', isAuthenticated, getSheet);
 sheetRoutes.put('/:id/update', isAuthenticated, updateSheet);

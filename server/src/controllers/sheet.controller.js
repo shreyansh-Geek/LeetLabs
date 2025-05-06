@@ -455,3 +455,32 @@ export const getSheet = async (req, res) => {
       return res.status(500).json({ error: 'Error unpinning sheet' });
     }
   };
+
+  export const getFeaturedSheets = async (req, res) => {
+    try {
+      const featuredSheets = await db.featuredSheet.findMany({
+        where: { isRecommended: true },
+        include: {
+          sheet: {
+            include: { creator: { select: { name: true } } },
+          },
+        },
+      });
+  
+      const sheets = featuredSheets
+        .filter(fs => fs.sheet && fs.sheet.visibility === 'PUBLIC') // Filter public sheets
+        .map(fs => ({
+          ...fs.sheet,
+          isRecommended: true,
+        }));
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Featured sheets fetched successfully',
+        sheets,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Error fetching featured sheets' });
+    }
+  };
