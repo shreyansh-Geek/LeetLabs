@@ -281,26 +281,49 @@ export const getSheet = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
   
     try {
-      // Build where clause
+      // Build where clause for public sheets
       const where = {
         visibility: 'PUBLIC',
         ...(search && {
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
             { description: { contains: search, mode: 'insensitive' } },
-            { tags: { hasSome: [search] } }, // Search tags for the keyword
+            { tags: { hasSome: [search] } },
           ],
         }),
       };
   
-      // Fetch sheets
+      // Fetch featured sheet IDs
+      const featuredSheets = await db.featuredSheet.findMany({
+        where: { isRecommended: true },
+        select: { sheetId: true },
+      });
+      const featuredSheetIds = new Set(featuredSheets.map(fs => fs.sheetId));
+  
+      // Fetch public sheets
       const sheets = await db.sheet.findMany({
         where,
-        include: { creator: { select: { name: true } } },
+        include: {
+          creator: { select: { name: true } },
+        },
         skip,
         take: Number(limit),
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'desc' }, // Default sorting
       });
+  
+      // Transform and sort sheets: prioritize featured sheets
+      const transformedSheets = sheets
+        .map(sheet => ({
+          ...sheet,
+          isRecommended: featuredSheetIds.has(sheet.id), // Add isRecommended
+        }))
+        .sort((a, b) => {
+          // Prioritize isRecommended: true
+          if (a.isRecommended && !b.isRecommended) return -1;
+          if (!a.isRecommended && b.isRecommended) return 1;
+          // Maintain createdAt order for equal isRecommended
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
   
       // Get total count for pagination
       const total = await db.sheet.count({ where });
@@ -308,7 +331,7 @@ export const getSheet = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: 'Public sheets fetched successfully',
-        sheets,
+        sheets: transformedSheets,
         pagination: {
           total,
           page: Number(page),
@@ -321,7 +344,6 @@ export const getSheet = async (req, res) => {
       return res.status(500).json({ error: 'Error fetching public sheets' });
     }
   };
-
   export const cloneSheet = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
