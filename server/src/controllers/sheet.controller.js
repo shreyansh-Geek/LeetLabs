@@ -230,3 +230,49 @@ export const getSheet = async (req, res) => {
       return res.status(500).json({ error: 'Error fetching user sheets' });
     }
   };
+  
+  export const getPublicSheets = async (req, res) => {
+    const { search, page = 1, limit = 15 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+  
+    try {
+      // Build where clause
+      const where = {
+        visibility: 'PUBLIC',
+        ...(search && {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+            { tags: { hasSome: [search] } }, // Search tags for the keyword
+          ],
+        }),
+      };
+  
+      // Fetch sheets
+      const sheets = await db.sheet.findMany({
+        where,
+        include: { creator: { select: { name: true } } },
+        skip,
+        take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+      });
+  
+      // Get total count for pagination
+      const total = await db.sheet.count({ where });
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Public sheets fetched successfully',
+        sheets,
+        pagination: {
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil(total / Number(limit)),
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Error fetching public sheets' });
+    }
+  };
