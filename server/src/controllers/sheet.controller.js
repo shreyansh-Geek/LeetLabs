@@ -63,3 +63,32 @@ export const createSheet = async (req, res) => {
     return res.status(500).json({ error: 'Error creating sheet' });
   }
 };
+
+export const getSheet = async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+  
+    try {
+      const sheet = await db.sheet.findUnique({
+        where: { id },
+        include: { creator: { select: { name: true } } },
+      });
+  
+      if (!sheet) {
+        return res.status(404).json({ error: 'Sheet not found' });
+      }
+  
+      if (sheet.visibility === 'PRIVATE' && sheet.creatorId !== userId) {
+        return res.status(403).json({ error: 'Unauthorized to view this sheet' });
+      }
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Sheet fetched successfully',
+        sheet,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Error fetching sheet' });
+    }
+  };
