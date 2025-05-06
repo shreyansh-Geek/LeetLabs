@@ -276,3 +276,46 @@ export const getSheet = async (req, res) => {
       return res.status(500).json({ error: 'Error fetching public sheets' });
     }
   };
+
+  export const cloneSheet = async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+  
+    try {
+      const sheet = await db.sheet.findUnique({
+        where: { id },
+        include: { creator: { select: { name: true } } }, // Include creator for reference
+      });
+  
+      if (!sheet) {
+        return res.status(404).json({ error: 'Sheet not found' });
+      }
+  
+      if (sheet.visibility !== 'PUBLIC') {
+        return res.status(403).json({ error: 'Only public sheets can be cloned' });
+      }
+  
+      const clonedSheet = await db.sheet.create({
+        data: {
+          name: `Clone of ${sheet.name}`,
+          description: sheet.description,
+          visibility: 'PRIVATE',
+          creatorId: userId,
+          tags: sheet.tags,
+          problems: sheet.problems,
+          isCloned: true,
+          clonedFromId: id,
+        },
+        include: { creator: { select: { name: true } } }, // Include creator in response
+      });
+  
+      return res.status(201).json({
+        success: true,
+        message: 'Sheet cloned successfully',
+        sheet: clonedSheet,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Error cloning sheet' });
+    }
+  };
