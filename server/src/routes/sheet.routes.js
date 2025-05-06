@@ -1,6 +1,6 @@
 import express from 'express';
 import { isAuthenticated, checkAdmin } from '../middlewares/auth.middleware.js';
-import { createSheet, getSheet, updateSheet, deleteSheet, getUserSheets, getPublicSheets, cloneSheet, pinSheet } from '../controllers/sheet.controller.js';
+import { createSheet, getSheet, updateSheet, deleteSheet, getUserSheets, getPublicSheets, cloneSheet, pinSheet, unpinSheet } from '../controllers/sheet.controller.js';
 
 const sheetRoutes = express.Router();
 
@@ -13,5 +13,6 @@ sheetRoutes.put('/:id/update', isAuthenticated, updateSheet);
 sheetRoutes.delete('/:id/delete', isAuthenticated, deleteSheet);
 sheetRoutes.post('/:id/clone', isAuthenticated, cloneSheet);
 sheetRoutes.post('/:id/pin', isAuthenticated, checkAdmin, pinSheet);
+sheetRoutes.delete('/:id/unpin', isAuthenticated, checkAdmin, unpinSheet);
 
 export default sheetRoutes;

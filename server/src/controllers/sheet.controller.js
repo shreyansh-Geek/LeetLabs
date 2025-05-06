@@ -415,9 +415,43 @@ export const getSheet = async (req, res) => {
         success: true,
         message: 'Sheet pinned successfully',
         featuredSheet,
+        sheet,
       });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Error pinning sheet' });
+    }
+  };
+
+  export const unpinSheet = async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+  
+    try {
+      // Verify sheet exists and is public
+      const sheet = await db.sheet.findUnique({ where: { id } });
+      if (!sheet) {
+        return res.status(404).json({ error: 'Sheet not found' });
+      }
+      if (sheet.visibility !== 'PUBLIC') {
+        return res.status(400).json({ error: 'Only public sheets can be unpinned' });
+      }
+  
+      // Check admin role (assumes checkAdmin middleware)
+      const featuredSheet = await db.featuredSheet.findUnique({ where: { sheetId: id } });
+      if (!featuredSheet) {
+        return res.status(404).json({ error: 'Sheet is not featured' });
+      }
+  
+      // Delete FeaturedSheet record
+      await db.featuredSheet.delete({ where: { sheetId: id } });
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Sheet unpinned successfully',
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Error unpinning sheet' });
     }
   };
