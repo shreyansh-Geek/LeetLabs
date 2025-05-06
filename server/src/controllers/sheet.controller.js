@@ -210,3 +210,23 @@ export const getSheet = async (req, res) => {
       return res.status(500).json({ error: 'Error deleting sheet' });
     }
   };
+
+  export const getUserSheets = async (req, res) => {
+    const userId = req.user.id;
+  
+    try {
+      const sheets = await db.sheet.findMany({
+        where: { creatorId: userId },
+        include: { creator: { select: { name: true } } },
+      });
+  
+      return res.status(200).json({
+        success: true,
+        message: 'User sheets fetched successfully',
+        sheets,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Error fetching user sheets' });
+    }
+  };
