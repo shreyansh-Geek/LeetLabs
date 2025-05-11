@@ -79,10 +79,10 @@ export default function Navbar() {
 
   return (
     <nav
-    className={`fixed top-0 w-full z-50 transition-all duration-300 satoshi  ${
+    className={`fixed top-0 w-full z-50 transition-all duration-300 satoshi bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm ${
       isScrolled
         ? 'bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm'
-        : 'bg-transparent'
+        : 'bg-white'
     }`}
     >
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
