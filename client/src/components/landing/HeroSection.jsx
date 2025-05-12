@@ -19,15 +19,15 @@ import typescript from "../../assets/languages/typeScript.png";
 export default function HeroSection() {
   // Array of language images with their positions, rotations, and sizes
   const languages = [
-    { src: cPlusPlus, alt: "C++", style: { top: "15%", left: "10%", width: "80px", transform: "rotate(-15deg)" } },
+    { src: cPlusPlus, alt: "C++", style: { top: "15%", left: "10%", width: "100px", transform: "rotate(-15deg)" } },
     { src: goLang, alt: "Go", style: { top: "15%", right: "15%", width: "100px", transform: "rotate(10deg)" } },
-    { src: java, alt: "Java", style: { bottom: "37%", left: "15%", width: "130px", transform: "rotate(-10deg)" } },
+    { src: java, alt: "Java", style: { bottom: "25%", left: "12%", width: "130px", transform: "rotate(-10deg)" } },
     { src: typescript, alt: "TypeScript", style: { bottom: "37%", right: "8%", width: "50px", transform: "rotate(-20deg)" } },
-    { src: php, alt: "PHP", style: { top: "46%", left: "30%", width: "50px", transform: "rotate(15deg)" } },
-    { src: python, alt: "Python", style: { top: "35%", right: "20%", width: "90px", transform: "rotate(-10deg)" } },
-    { src: ruby, alt: "Ruby", style: { top: "33%", left: "20%", width: "60px", transform: "rotate(20deg)" } },
+    { src: php, alt: "PHP", style: { bottom: "25%", right: "30%", width: "50px", transform: "rotate(15deg)" } },
+    { src: python, alt: "Python", style: { top: "35%", right: "19%", width: "90px", transform: "rotate(-10deg)" } },
+    { src: ruby, alt: "Ruby", style: { top: "43%", left: "18%", width: "60px", transform: "rotate(20deg)" } },
     { src: rust, alt: "Rust", style: { top: "10%", right: "40%", width: "65px", transform: "rotate(-5deg)" } },
-    { src: javascript, alt: "JavaScript", style: { top: "14%", left: "38%", width: "70px", transform: "rotate(8deg)" } },
+    { src: javascript, alt: "JavaScript", style: { top: "17%", left: "38%", width: "90px", transform: "rotate(8deg)" } },
   ];
 
   return (
@@ -113,7 +113,7 @@ export default function HeroSection() {
 
       {/* Content Overlay */}
       <div className="text-center">
-        <h1 className="z-10 text-3xl md:text-5xl font-bold mt-0 mb-4 text-black arp-display leading-snug text-center max-w-4xl mx-auto">
+        <h1 className="z-10 text-3xl md:text-5xl font-bold mt-30 mb-4 text-black arp-display leading-snug text-center max-w-4xl mx-auto">
           A Lab where Coders{" "}
           <Highlight
             fromColor="yellow-300"
@@ -136,17 +136,17 @@ export default function HeroSection() {
           </Highlight>{" "}
           Themselves
         </h1>
-        <p className="z-10 text-lg md:text-lg text-gray-600 max-w-3xl mb-8 mx-auto">
+        <p className="z-10 text-lg font-medium md:text-lg text-gray-500 max-w-3xl mb-8 mx-auto satoshi">
           Train rigorously, solve real challenges, and sharpen your coding mind.{" "}
           <br />
           LeetLabs is your lab to practice and push past your limits — built for coders who want to lead.
         </p>
-        <div className="flex justify-center gap-5 max-w-3xl mb-8 mx-auto">
+        <div className="flex justify-center gap-5 max-w-3xl mb-8 mx-auto satoshi">
           <Link to="/signup">
             <ShimmerButton
               shimmerColor="#f5b210"
               borderRadius="7px"
-              shimmerSize="0.15em"
+              shimmerSize="0.1em"
               background="black"
               className="px-8 py-3 text-lg font-semibold group-hover:shadow-[inset_0_-6px_10px_#ffffff3f]"
             >
