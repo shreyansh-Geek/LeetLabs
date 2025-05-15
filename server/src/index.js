@@ -5,6 +5,7 @@ import problemRoutes from './routes/problem.routes.js'
 import executeCodeRoutes from "./routes/executeCode.routes.js"
 import submissionRoutes from "./routes/submission.routes.js"
 import sheetRoutes from "./routes/sheet.routes.js"
+import cors from 'cors'
 import cookieParser from 'cookie-parser'
 dotenv.config()
 const app = express()
@@ -14,6 +15,11 @@ app.use(express.json())
 app.get('/', (req, res) => {
     res.send('Hello World, this is the LeetLabs server!🔥')
 })
+
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}))
 
 app.use("/api/v1/auth", authRoutes)
 app.use("/api/v1/problems", problemRoutes)
