@@ -129,10 +129,8 @@ export const verifyUser = async (req, res) => {
       },
     });
 
-    return res.status(200).json({
-      success: true,
-      message: "User verified successfully",
-    });
+    // Redirect to frontend login page
+    return res.redirect(`${process.env.FRONTEND_URL}/login`);
   } catch (error) {
     console.error("Verification Error:", error);
     return res.status(500).json({
