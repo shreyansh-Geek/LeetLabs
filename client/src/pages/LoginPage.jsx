@@ -74,7 +74,7 @@ const LoginPage = () => {
       toast.success("Login successful!", {
         description: "Redirecting to your dashboard...",
       });
-      navigate("/problems");
+      navigate("/profile");
     } catch (err) {
       const errorMessage = err.message || "Failed to log in. Please try again.";
       setError(errorMessage);
