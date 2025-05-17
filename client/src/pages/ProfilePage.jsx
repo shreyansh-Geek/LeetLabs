@@ -15,7 +15,7 @@ import {
   IconStar,
   IconPlus,
 } from '@tabler/icons-react';
-import LeetLabsLogoDark from '../../../client/public/LeetLabs-favicon.png';
+import LeetLabsLogoDark from '../assets/smart-logo.png';
 
 export default function ProfilePage() {
   const { isAuthenticated, user, isLoading, logout } = useAuth();

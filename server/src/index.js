@@ -6,6 +6,7 @@ import executeCodeRoutes from "./routes/executeCode.routes.js"
 import submissionRoutes from "./routes/submission.routes.js"
 import sheetRoutes from "./routes/sheet.routes.js"
 import cors from 'cors'
+import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser'
 dotenv.config()
 const app = express()
@@ -20,6 +21,10 @@ app.use(cors({
     origin: 'http://localhost:5173',
     credentials: true
 }))
+
+// Increase payload size limit to 10MB
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use("/api/v1/auth", authRoutes)
 app.use("/api/v1/problems", problemRoutes)

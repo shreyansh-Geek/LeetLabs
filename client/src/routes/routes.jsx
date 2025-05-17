@@ -4,6 +4,7 @@ import { useRoutes } from "react-router-dom";
 // Lazy-loaded page components
 const LandingPage = lazy(() => import("../pages/LandingPage.jsx"));
 const ProfilePage = lazy(() => import("../pages/ProfilePage.jsx"));
+const AddProblemPage = lazy(() => import("../pages/AddProblemsPage.jsx"));
 const ProblemsPage = lazy(() => import("../pages/ProblemsPage.jsx"));
 const ProblemDetailPage = lazy(() => import("../pages/ProblemDetailPage.jsx"));
 const SheetLibraryPage = lazy(() => import("../pages/SheetLibraryPage.jsx"));
@@ -31,6 +32,10 @@ const AppRoutes = () =>
     {
       path: '/profile',
       element: <ProfilePage />,
+    },
+    { 
+      path: "/profile/add-problem", 
+      element: <AddProblemPage /> 
     },
     {
       path: "/problems",
