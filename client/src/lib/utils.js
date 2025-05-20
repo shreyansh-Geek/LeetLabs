@@ -1,18 +1,19 @@
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+// lib/utils.js
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-export const apiFetch = async (endpoint, method = "GET", body = null) => {
-  const baseUrl = "http://localhost:8080/api/v1";
+export const apiFetch = async (endpoint, method = 'GET', body = null) => {
+  const baseUrl = 'http://localhost:8080/api/v1';
   const options = {
     method,
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
-    credentials: "include", // Include cookies if needed
+    credentials: 'include',
   };
 
   if (body) {
@@ -23,10 +24,55 @@ export const apiFetch = async (endpoint, method = "GET", body = null) => {
     const response = await fetch(`${baseUrl}${endpoint}`, options);
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || "Request failed");
+      throw new Error(errorData.message || 'Request failed');
     }
     return response.json();
   } catch (error) {
-    throw new Error(error.message || "Network error");
+    throw new Error(error.message || 'Network error');
   }
+};
+
+export const languageMap = [
+  { name: 'JAVASCRIPT', display: 'JavaScript', monaco: 'javascript', judge0: 63 },
+  { name: 'PYTHON', display: 'Python', monaco: 'python', judge0: 71 },
+  { name: 'JAVA', display: 'Java', monaco: 'java', judge0: 62 },
+  { name: 'C++', display: 'C++', monaco: 'cpp', judge0: 54 },
+  { name: 'GO', display: 'Go', monaco: 'go', judge0: 60 },
+];
+
+export const getCodeStub = (problem, language) => {
+  if (!problem || !language) return '// Select a language or problem';
+  return (
+    problem?.codeSnippets?.[language] ||
+    problem?.codeSnippets?.[language.toLowerCase()] ||
+    {
+      JAVASCRIPT: '// JavaScript code stub',
+      PYTHON: '# Python code stub',
+      JAVA: '// Java code stub',
+      'C++': '// C++ code stub',
+      GO: '// Go code stub',
+    }[language.toUpperCase()] ||
+    '// No code stub available'
+  );
+};
+
+export const withRetry = async (fn, options = {}) => {
+  const { retries = 1, delay = 1000, shouldRetry = () => true } = options; // Reduced default retries to 1
+  let lastError;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (!shouldRetry(err)) {
+        throw err;
+      }
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError;
 };
