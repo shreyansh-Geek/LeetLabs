@@ -54,6 +54,7 @@ model User {
 
   sheets Sheet[]
   featuredSheets FeaturedSheet[]
+  notes Note[]
 }
 
 model Problem {
@@ -79,6 +80,7 @@ model Problem {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   submission Submission[]
   solvedBy ProblemSolved[]
+  notes Note[]
 }
 
 model Submission{
@@ -179,4 +181,16 @@ model Tag {
   updatedAt DateTime @updatedAt
 
   @@index([name]) // For fast tag lookups
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  userId    String
+  problemId String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  @@unique([userId, problemId])
 }
