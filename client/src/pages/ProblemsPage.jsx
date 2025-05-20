@@ -439,7 +439,7 @@ const ProblemsPage = () => {
                     >
                       <td className="p-4">
                         <Link
-                          to={`/problems/${problem.id}`}
+                          to={`/problem/${problem.id}`}
                           className="text-md font-medium text-white hover:text-[#f5b210] block"
                         >
                           {problem.title}
@@ -502,7 +502,7 @@ const ProblemsPage = () => {
                         </button>
                       </td>
                       <td className="p-4 text-center">
-                        <Link to={`/problems/${problem.id}`}>
+                        <Link to={`/problem/${problem.id}`}>
                           <button className="border border-[#f5b210] text-[#f5b210] px-4 py-1 rounded-sm text-sm font-medium group-hover:bg-[#f5b210] group-hover:text-black transition-colors cursor-pointer">
                             Solve
                           </button>
