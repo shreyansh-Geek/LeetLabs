@@ -7,7 +7,8 @@ const ProfilePage = lazy(() => import("../pages/ProfilePage.jsx"));
 const AddProblemPage = lazy(() => import("../pages/AddProblemsPage.jsx"));
 const ProblemsPage = lazy(() => import("../pages/ProblemsPage.jsx"));
 const ProblemDetailPage = lazy(() => import("../pages/ProblemDetailPage.jsx"));
-const SheetLibraryPage = lazy(() => import("../pages/SheetLibraryPage.jsx"));
+const PublicSheetsPage  = lazy(() => import("../pages/PublicSheetsPage.jsx"));
+const MySheetsPage   = lazy(() => import("../pages/MySheetsPage.jsx"));
 const SheetDetailPage = lazy(() => import("../pages/SheetDetailPage.jsx"));
 const CoursesPage = lazy(() => import("../pages/CoursesPage.jsx"));
 const ContributePage = lazy(() => import("../pages/ContributePage.jsx"));
@@ -46,8 +47,12 @@ const AppRoutes = () =>
       element: <ProblemDetailPage />, // View specific problem (GET /getProblem/:id)
     },
     {
-      path: "/sheet-library",
-      element: <SheetLibraryPage />, // List public/featured sheets (GET /public, GET /featured)
+      path: "/sheets/public",
+      element: <PublicSheetsPage />, // List public/featured sheets (GET /public, GET /featured)
+    },
+    {
+      path: "/sheets/my",
+      element: <MySheetsPage />, // List my sheets (GET /my, )
     },
     {
       path: "/sheet/:id",

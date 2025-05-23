@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Toaster, toast } from "sonner";
-import { useAuth } from "../lib/auth.js";
-import { useProblems } from "../lib/problems.js";
-import { Badge } from "../components/ui/badge.jsx";
-import { Button } from "../components/ui/button.jsx";
-import { IconFileText } from "@tabler/icons-react";
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Toaster, toast } from 'sonner';
+import { useAuth } from '../lib/auth.js';
+import { useProblems } from '../lib/problems.js';
+import { useSheets } from '../lib/sheets.js'; // Import useSheets
+import { Badge } from '../components/ui/badge.jsx';
+import { Button } from '../components/ui/button.jsx';
+import { IconFileText } from '@tabler/icons-react';
 import {
   Check,
   Plus,
@@ -14,19 +15,20 @@ import {
   Search,
   Tag,
   ArrowUpDown,
-} from "lucide-react";
-import { motion } from "framer-motion";
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuItem,
-} from "../components/ui/dropdown-menu.jsx";
-import FilterModal from "../components/Problems/FilterModal.jsx";
-import FilterSidebar from "../components/Problems/FilterSidebar.jsx";
-import NotesModal from "../components/Problems/NotesModal.jsx";
-import Navbar from "../components/Problems/DarkNavbar.jsx";
+} from '../components/ui/dropdown-menu.jsx';
+import FilterModal from '../components/Problems/FilterModal.jsx';
+import FilterSidebar from '../components/Problems/FilterSidebar.jsx';
+import NotesModal from '../components/Problems/NotesModal.jsx';
+import AddToSheetModal from '../components/Sheets/AddToSheetModal.jsx';
+import Navbar from '../components/Problems/DarkNavbar.jsx';
 
 const ProblemsPage = () => {
   const { isAuthenticated, user, isLoading: authLoading, logout } = useAuth();
@@ -34,11 +36,20 @@ const ProblemsPage = () => {
     problems,
     userSolvedProblems,
     isLoading: problemsLoading,
-    error,
+    error: problemsError,
     fetchAllProblems,
     fetchUserSolvedProblems,
-    clearError,
+    clearError: clearProblemsError,
   } = useProblems();
+  const {
+    userSheets,
+    isLoading: sheetsLoading,
+    error: sheetsError,
+    fetchUserSheets,
+    createSheet,
+    addProblemToSheet,
+    clearError: clearSheetsError,
+  } = useSheets(); // Use useSheets
   const navigate = useNavigate();
   const [difficultyFilter, setDifficultyFilter] = useState([]);
   const [topicFilter, setTopicFilter] = useState([]);
@@ -49,20 +60,22 @@ const ProblemsPage = () => {
   const [isTopicsOpen, setIsTopicsOpen] = useState(true);
   const [isDifficultyOpen, setIsDifficultyOpen] = useState(true);
   const [isStatusOpen, setIsStatusOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("default");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('default');
   const [notes, setNotes] = useState({});
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [currentProblemId, setCurrentProblemId] = useState(null);
-  const [currentNote, setCurrentNote] = useState("");
+  const [currentNote, setCurrentNote] = useState('');
   const [isTagsModalOpen, setIsTagsModalOpen] = useState(false);
   const [currentTags, setCurrentTags] = useState([]);
   const [isCompaniesModalOpen, setIsCompaniesModalOpen] = useState(false);
   const [isTopicsModalOpen, setIsTopicsModalOpen] = useState(false);
+  const [isAddToSheetModalOpen, setIsAddToSheetModalOpen] = useState(false);
+  const [selectedProblemId, setSelectedProblemId] = useState(null);
 
   // Load notes from local storage on mount
   useEffect(() => {
-    const storedNotes = localStorage.getItem("problemNotes");
+    const storedNotes = localStorage.getItem('problemNotes');
     if (storedNotes) {
       setNotes(JSON.parse(storedNotes));
     }
@@ -70,35 +83,39 @@ const ProblemsPage = () => {
 
   // Save notes to local storage whenever they change
   useEffect(() => {
-    localStorage.setItem("problemNotes", JSON.stringify(notes));
+    localStorage.setItem('problemNotes', JSON.stringify(notes));
   }, [notes]);
 
-  // Fetch problems and solved problems when authenticated
+  // Fetch problems and user sheets when authenticated
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated) {
-      navigate("/login");
+      navigate('/login');
       return;
     }
 
     const fetchData = async () => {
       try {
-        await Promise.all([fetchAllProblems(), fetchUserSolvedProblems()]);
+        await Promise.all([fetchAllProblems(), fetchUserSolvedProblems(), fetchUserSheets()]);
       } catch (err) {
-        // Error is handled by useProblems hook
+        // Errors are handled by hooks
       }
     };
 
     fetchData();
-  }, [isAuthenticated, authLoading, fetchAllProblems, fetchUserSolvedProblems, navigate]);
+  }, [isAuthenticated, authLoading, fetchAllProblems, fetchUserSolvedProblems, fetchUserSheets, navigate]);
 
   // Show toast for errors
   useEffect(() => {
-    if (error) {
-      toast.error(error);
-      clearError();
+    if (problemsError) {
+      toast.error(problemsError);
+      clearProblemsError();
     }
-  }, [error, clearError]);
+    if (sheetsError) {
+      toast.error(sheetsError);
+      clearSheetsError();
+    }
+  }, [problemsError, sheetsError, clearProblemsError, clearSheetsError]);
 
   // Calculate counts for filters
   const calculateFilterCounts = () => {
@@ -152,8 +169,8 @@ const ProblemsPage = () => {
     if (statusFilter.length > 0) {
       filtered = filtered.filter((problem) => {
         const isSolved = userSolvedProblems.some((p) => p.id === problem.id);
-        if (statusFilter.includes("Solved") && isSolved) return true;
-        if (statusFilter.includes("Unsolved") && !isSolved) return true;
+        if (statusFilter.includes('Solved') && isSolved) return true;
+        if (statusFilter.includes('Unsolved') && !isSolved) return true;
         return false;
       });
     }
@@ -164,7 +181,7 @@ const ProblemsPage = () => {
           problem.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
-    if (sortBy === "difficulty") {
+    if (sortBy === 'difficulty') {
       const order = { EASY: 1, MEDIUM: 2, HARD: 3 };
       filtered = [...filtered].sort((a, b) => order[a.difficulty] - order[b.difficulty]);
     }
@@ -178,14 +195,14 @@ const ProblemsPage = () => {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case "EASY":
-        return "bg-[#28a056]/20 text-[#28a056] border-[#28a056]";
-      case "MEDIUM":
-        return "bg-[#f5b210]/20 text-[#f5b210] border-[#f5b210]";
-      case "HARD":
-        return "bg-[#ef4444]/20 text-[#ef4444] border-[#ef4444]";
+      case 'EASY':
+        return 'bg-[#28a056]/20 text-[#28a056] border-[#28a056]';
+      case 'MEDIUM':
+        return 'bg-[#f5b210]/20 text-[#f5b210] border-[#f5b210]';
+      case 'HARD':
+        return 'bg-[#ef4444]/20 text-[#ef4444] border-[#ef4444]';
       default:
-        return "bg-gray-600/20 text-gray-600 border-gray-600";
+        return 'bg-gray-600/20 text-gray-600 border-gray-600';
     }
   };
 
@@ -229,7 +246,7 @@ const ProblemsPage = () => {
     setStatusFilter([]);
   };
 
-  const openNotesModal = (problemId, note = "") => {
+  const openNotesModal = (problemId, note = '') => {
     setCurrentProblemId(problemId);
     setCurrentNote(note);
     setIsNotesModalOpen(true);
@@ -244,7 +261,7 @@ const ProblemsPage = () => {
     }
     setIsNotesModalOpen(false);
     setCurrentProblemId(null);
-    setCurrentNote("");
+    setCurrentNote('');
   };
 
   const clearNote = () => {
@@ -257,7 +274,7 @@ const ProblemsPage = () => {
     }
     setIsNotesModalOpen(false);
     setCurrentProblemId(null);
-    setCurrentNote("");
+    setCurrentNote('');
   };
 
   const openTagsModal = (tags) => {
@@ -265,11 +282,27 @@ const ProblemsPage = () => {
     setIsTagsModalOpen(true);
   };
 
-  const handleAddToSheets = (problemId) => {
-    toast.success(`Problem ${problemId} added to sheets!`);
+  const openAddToSheetModal = (problemId) => {
+    setSelectedProblemId(problemId);
+    setIsAddToSheetModalOpen(true);
   };
 
-  if (authLoading || problemsLoading) {
+  // Handle Escape key to close modals
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') {
+        setIsAddToSheetModalOpen(false);
+        setIsNotesModalOpen(false);
+        setIsTagsModalOpen(false);
+        setIsCompaniesModalOpen(false);
+        setIsTopicsModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
+  if (authLoading || problemsLoading || sheetsLoading) {
     return (
       <div className="flex justify-center items-center h-screen bg-neutral-950">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#f5b210]"></div>
@@ -293,12 +326,12 @@ const ProblemsPage = () => {
     }))
     .sort((a, b) => b.count - a.count);
 
-  const difficulties = ["EASY", "MEDIUM", "HARD"].map((difficulty) => ({
+  const difficulties = ['EASY', 'MEDIUM', 'HARD'].map((difficulty) => ({
     name: difficulty,
     count: difficultyCounts[difficulty] || 0,
   }));
 
-  const statuses = ["Solved", "Unsolved"].map((status) => ({
+  const statuses = ['Solved', 'Unsolved'].map((status) => ({
     name: status,
     count: statusCounts[status] || 0,
   }));
@@ -372,19 +405,19 @@ const ProblemsPage = () => {
                       className="flex items-center gap-2 bg-neutral-800 text-gray-300 border border-neutral-700 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#f5b210] h-10"
                     >
                       <ArrowUpDown size={16} className="text-[#f5b210]" />
-                      <span className="text-sm">{sortBy === "default" ? "Sort: Default" : "Sort: Difficulty"}</span>
+                      <span className="text-sm">{sortBy === 'default' ? 'Sort: Default' : 'Sort: Difficulty'}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-neutral-800 text-gray-300 border border-neutral-700">
                     <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
                     <DropdownMenuItem
-                      onClick={() => setSortBy("default")}
+                      onClick={() => setSortBy('default')}
                       className="hover:bg-neutral-700 focus:bg-neutral-700"
                     >
                       Default
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => setSortBy("difficulty")}
+                      onClick={() => setSortBy('difficulty')}
                       className="hover:bg-neutral-700 focus:bg-neutral-700"
                     >
                       Difficulty
@@ -394,13 +427,13 @@ const ProblemsPage = () => {
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2">
-                  <Link to="/sheets">
+                  <Link to="/sheets/my">
                     <Button className="bg-neutral-800 hover:bg-neutral-700 text-gray-300 border border-neutral-700 flex items-center gap-2 h-10">
                       <IconFileText size={20} />
                       My Sheets
                     </Button>
                   </Link>
-                  {user?.role === "ADMIN" && (
+                  {user?.role === 'ADMIN' && (
                     <Link to="/profile/add-problem">
                       <Button className="bg-[#f5b210] hover:bg-[#f5b210]/80 text-black font-medium flex items-center gap-2 h-10">
                         <Plus size={16} />
@@ -487,7 +520,7 @@ const ProblemsPage = () => {
                       </td>
                       <td className="p-4 text-center">
                         <button
-                          onClick={() => openNotesModal(problem.id, notes[problem.id] || "")}
+                          onClick={() => openNotesModal(problem.id, notes[problem.id] || '')}
                           className="text-gray-400 hover:text-[#f5b210] transition-colors cursor-pointer"
                         >
                           {notes[problem.id] ? <Edit size={20} /> : <Plus size={20} />}
@@ -495,8 +528,9 @@ const ProblemsPage = () => {
                       </td>
                       <td className="p-4 text-center">
                         <button
-                          onClick={() => handleAddToSheets(problem.id)}
+                          onClick={() => openAddToSheetModal(problem.id)}
                           className="text-gray-400 hover:text-[#f5b210] transition-colors cursor-pointer"
+                          aria-label={`Add problem ${problem.title} to a sheet`}
                         >
                           <Bookmark size={20} />
                         </button>
@@ -588,6 +622,16 @@ const ProblemsPage = () => {
           </motion.div>
         </motion.div>
       )}
+
+      {/* Add to Sheet Modal */}
+      <AddToSheetModal
+        isOpen={isAddToSheetModalOpen}
+        onClose={() => setIsAddToSheetModalOpen(false)}
+        sheets={userSheets}
+        problemId={selectedProblemId}
+        addProblemToSheet={addProblemToSheet}
+        createSheet={createSheet}
+      />
     </div>
   );
 };
