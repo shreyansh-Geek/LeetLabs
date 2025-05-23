@@ -31,7 +31,7 @@ const discoverItems = [
   },
   {
     title: 'Sheets Library',
-    to: '/sheet-library',
+    to: '/sheets/public',
     description: 'Explore curated DSA and coding question sheets for practice.',
   },
   {
