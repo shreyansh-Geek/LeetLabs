@@ -49,7 +49,7 @@ export default function ProfilePage() {
     },
     {
       label: 'Sheets Library',
-      href: '/sheets',
+      href: '/sheets/public',
       icon: <IconFileText className="h-5 w-5 shrink-0 text-gray-200" />,
     },
     {
