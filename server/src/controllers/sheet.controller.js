@@ -103,8 +103,11 @@ export const getSheet = async (req, res) => {
           visibility: sheet.visibility,
           tags: sheet.tags,
           creator: sheet.creator,
+          creatorId: sheet.creatorId,
           createdAt: sheet.createdAt,
-          totalProblems, // Include problem count for UI
+          updatedAt: sheet.updatedAt,
+          totalProblems, 
+          problems: sheet.problems,
           progress: {
             solved: solvedProblems,
             total: totalProblems,
@@ -291,6 +294,126 @@ export const getSheet = async (req, res) => {
       return res.status(500).json({ error: 'Error fetching sheet problems' });
     }
   };
+
+  export const addProblemToSheet = async (req, res) => {
+  const { sheetId, problemId } = req.body;
+  const userId = req.user.id;
+
+  try {
+    // Validate input
+    if (!sheetId || !problemId) {
+      return res.status(400).json({ error: 'Sheet ID and Problem ID are required' });
+    }
+
+    // Fetch the sheet
+    const sheet = await db.sheet.findUnique({
+      where: { id: sheetId },
+      select: { creatorId: true, problems: true },
+    });
+
+    if (!sheet) {
+      return res.status(404).json({ error: 'Sheet not found' });
+    }
+
+    if (sheet.creatorId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized to modify this sheet' });
+    }
+
+    // Validate problem ID
+    const problem = await db.problem.findUnique({
+      where: { id: problemId },
+      select: { id: true },
+    });
+
+    if (!problem) {
+      return res.status(400).json({ error: 'Invalid problem ID' });
+    }
+
+    // Check for duplicate
+    if (sheet.problems.includes(problemId)) {
+      return res.status(400).json({ error: 'Problem already in sheet' });
+    }
+
+    // Append problem to sheet
+    const updatedSheet = await db.sheet.update({
+      where: { id: sheetId },
+      data: {
+        problems: {
+          push: problemId,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        problems: true,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Problem added to sheet successfully',
+      sheet: updatedSheet,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Error adding problem to sheet' });
+  }
+};
+
+export const removeProblemFromSheet = async (req, res) => {
+  const { sheetId, problemId } = req.body;
+  const userId = req.user.id;
+
+  try {
+    // Validate input
+    if (!sheetId || !problemId) {
+      return res.status(400).json({ error: 'Sheet ID and Problem ID are required' });
+    }
+
+    // Fetch the sheet
+    const sheet = await db.sheet.findUnique({
+      where: { id: sheetId },
+      select: { creatorId: true, problems: true },
+    });
+
+    if (!sheet) {
+      return res.status(404).json({ error: 'Sheet not found' });
+    }
+
+    if (sheet.creatorId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized to modify this sheet' });
+    }
+
+    // Check if problem is in sheet
+    if (!sheet.problems.includes(problemId)) {
+      return res.status(400).json({ error: 'Problem not found in sheet' });
+    }
+
+    // Remove problem from sheet
+    const updatedSheet = await db.sheet.update({
+      where: { id: sheetId },
+      data: {
+        problems: {
+          set: sheet.problems.filter((id) => id !== problemId),
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        problems: true,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Problem removed from sheet successfully',
+      sheet: updatedSheet,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Error removing problem from sheet' });
+  }
+};
   
 
   export const getUserSheets = async (req, res) => {
@@ -305,7 +428,10 @@ export const getSheet = async (req, res) => {
           description: true,
           visibility: true,
           tags: true,
+          isCloned: true,
+          clonedFromId: true,
           createdAt: true,
+          updatedAt: true,
           problems: true, // Needed for totalProblems
           creator: { select: { name: true } }, // Nested select for creator
         },
@@ -331,7 +457,10 @@ export const getSheet = async (req, res) => {
             visibility: sheet.visibility,
             tags: sheet.tags,
             creator: sheet.creator,
+            isCloned: sheet.isCloned,
+            clonedFromId: sheet.clonedFromId,
             createdAt: sheet.createdAt,
+            updatedAt: sheet.updatedAt?.toISOString() || sheet.createdAt.toISOString(),
             totalProblems,
             progress: {
               solved: solvedProblems,
@@ -384,6 +513,7 @@ export const getSheet = async (req, res) => {
           visibility: true,
           tags: true,
           createdAt: true,
+          updatedAt: true,
           problems: true, // Needed for totalProblems
           creator: { select: { name: true } }, // Nested select for creator
         },
@@ -402,6 +532,7 @@ export const getSheet = async (req, res) => {
           tags: sheet.tags,
           creator: sheet.creator,
           createdAt: sheet.createdAt,
+          updatedAt: sheet.updatedAt,
           totalProblems: sheet.problems.length,
           isRecommended: featuredSheetIds.has(sheet.id),
         }))
@@ -554,6 +685,7 @@ export const getSheet = async (req, res) => {
               visibility: true,
               tags: true,
               createdAt: true,
+              updatedAt: true,
               problems: true, // Needed for totalProblems
               creator: { select: { name: true } }, // Nested select for creator
             },
@@ -571,6 +703,7 @@ export const getSheet = async (req, res) => {
           tags: fs.sheet.tags,
           creator: fs.sheet.creator,
           createdAt: fs.sheet.createdAt,
+          updatedAt: fs.sheet.updatedAt,
           totalProblems: fs.sheet.problems.length,
           isRecommended: true,
         }));
