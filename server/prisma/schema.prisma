@@ -55,6 +55,7 @@ model User {
   sheets Sheet[]
   featuredSheets FeaturedSheet[]
   notes Note[]
+  chatMessages ChatMessage[]
 }
 
 model Problem {
@@ -81,6 +82,7 @@ model Problem {
   submission Submission[]
   solvedBy ProblemSolved[]
   notes Note[]
+  chatMessages ChatMessage[]
 }
 
 model Submission{
@@ -193,4 +195,17 @@ model Note {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
   @@unique([userId, problemId])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  problemId String
+  userId    String
+  role      String   // "user" or "assistant"
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([problemId, userId, createdAt]) // For efficient chat history queries
 }

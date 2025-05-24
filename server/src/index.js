@@ -6,6 +6,7 @@ import executeCodeRoutes from "./routes/executeCode.routes.js"
 import submissionRoutes from "./routes/submission.routes.js"
 import sheetRoutes from "./routes/sheet.routes.js"
 import noteRoutes from "./routes/note.routes.js";
+import aiDiscussionRoutes from './routes/aiDiscussion.routes.js';
 import cors from 'cors'
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser'
@@ -33,6 +34,7 @@ app.use("/api/v1/execute-code" , executeCodeRoutes)
 app.use("/api/v1/submissions", submissionRoutes)
 app.use('/api/v1/sheets', sheetRoutes);
 app.use('/api/v1/notes', noteRoutes);
+app.use('/api/v1/ai-discussions', aiDiscussionRoutes);
 
 app.listen(process.env.PORT|| 3000, () => {
     console.log(`Server running on port ${process.env.PORT}`)   
