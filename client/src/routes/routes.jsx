@@ -15,6 +15,7 @@ const ContributePage = lazy(() => import("../pages/ContributePage.jsx"));
 const BlogsPage = lazy(() => import("../pages/BlogsPage.jsx"));
 const RoadmapsPage = lazy(() => import("../pages/RoadmapsPage.jsx"));
 const GlossaryPage = lazy(() => import("../pages/GlossaryPage.jsx"));
+const GlossaryDetailPage = lazy(() => import("../pages/GlossaryDetailPage.jsx"));
 const AIDiscussionPage = lazy(() => import("../pages/AIDiscussionPage.jsx"));
 const PricingPage = lazy(() => import("../pages/PricingPage.jsx"));
 const LoginPage = lazy(() => import("../pages/LoginPage.jsx"));
@@ -77,6 +78,10 @@ const AppRoutes = () =>
     {
       path: "/glossary",
       element: <GlossaryPage />, // Placeholder for glossary (static)
+    },
+    {
+      path: "/glossary/:termId",
+      element: <GlossaryDetailPage />, // Placeholder for glossary detail (static)
     },
     {
       path: "/ai-discussion",
