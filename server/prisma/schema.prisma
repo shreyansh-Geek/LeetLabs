@@ -209,3 +209,14 @@ model ChatMessage {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([problemId, userId, createdAt]) // For efficient chat history queries
 }
+
+model GlossaryTerm {
+  id             String   @id @default(uuid())
+  term           String   @unique
+  details        Json     // Stores { definition, example, whyItMatters, commonPitfalls }
+  category       String?
+  relatedConcepts GlossaryTerm[] @relation("RelatedTerms")
+  relatedTo      GlossaryTerm[] @relation("RelatedTerms")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
