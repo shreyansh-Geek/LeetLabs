@@ -9,6 +9,7 @@ import noteRoutes from "./routes/note.routes.js";
 import aiDiscussionRoutes from './routes/aiDiscussion.routes.js';
 import glossaryRoutes from './routes/glossary.routes.js';
 import blogRoutes from "./routes/blog.routes.js";
+import contributeRoutes from './routes/contribute.routes.js';
 import cors from 'cors'
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser'
@@ -39,6 +40,7 @@ app.use('/api/v1/notes', noteRoutes);
 app.use('/api/v1/ai-discussions', aiDiscussionRoutes);
 app.use('/api/v1/glossary', glossaryRoutes);
 app.use("/api/v1/blogs", blogRoutes);
+app.use('/api/v1/contribute', contributeRoutes);
 
 app.listen(process.env.PORT|| 3000, () => {
     console.log(`Server running on port ${process.env.PORT}`)   
