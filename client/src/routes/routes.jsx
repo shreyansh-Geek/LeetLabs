@@ -13,6 +13,7 @@ const SheetDetailPage = lazy(() => import("../pages/SheetDetailPage.jsx"));
 const CoursesPage = lazy(() => import("../pages/CoursesPage.jsx"));
 const ContributePage = lazy(() => import("../pages/ContributePage.jsx"));
 const BlogsPage = lazy(() => import("../pages/BlogsPage.jsx"));
+const BlogDetailPage = lazy(() => import("../pages/BlogDetailPage.jsx"));
 const RoadmapsPage = lazy(() => import("../pages/RoadmapsPage.jsx"));
 const GlossaryPage = lazy(() => import("../pages/GlossaryPage.jsx"));
 const GlossaryDetailPage = lazy(() => import("../pages/GlossaryDetailPage.jsx"));
@@ -69,7 +70,11 @@ const AppRoutes = () =>
     },
     {
       path: "/blogs",
-      element: <BlogsPage />, // Placeholder for blogs (static)
+      element: <BlogsPage />, // Placeholder for blogs 
+    },
+    {
+      path: "/blogs/:id",
+      element: <BlogDetailPage  />, // Placeholder for blogs Details 
     },
     {
       path: "/roadmaps",

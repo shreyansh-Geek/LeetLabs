@@ -56,6 +56,7 @@ model User {
   featuredSheets FeaturedSheet[]
   notes Note[]
   chatMessages ChatMessage[]
+  blogs Blog[]
 }
 
 model Problem {
@@ -219,4 +220,15 @@ model GlossaryTerm {
   relatedTo      GlossaryTerm[] @relation("RelatedTerms")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model Blog {
+  id        String   @id @default(uuid()) 
+  coverImage String?  
+  title     String
+  content   String   @db.Text
+  authorId  String   
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

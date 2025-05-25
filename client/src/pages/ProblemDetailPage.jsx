@@ -273,24 +273,9 @@ const ProblemDetailPage = () => {
         {isProblemLoading || isWorkspaceLoading ? (
           <div className="flex flex-col items-center justify-center h-full bg-[#1A1A1A] text-gray-300">
             <div className="relative">
-              <svg
-                className="animate-spin h-12 w-12 text-[#f5b210]"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
-                />
-              </svg>
+              <div className="flex justify-center items-center h-screen w-screen bg-neutral-950">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#f5b210]"></div>
+      </div>
               <p className="mt-4 text-sm font-satoshi">Loading Problem...</p>
             </div>
           </div>
