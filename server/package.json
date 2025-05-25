@@ -28,6 +28,8 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.1.2",
     "jsonwebtoken": "^9.0.2",
     "mailgen": "^2.0.29",
     "mailtrap": "^4.1.0",
