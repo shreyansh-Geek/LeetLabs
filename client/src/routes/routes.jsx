@@ -15,6 +15,7 @@ const ContributePage = lazy(() => import("../pages/ContributePage.jsx"));
 const BlogsPage = lazy(() => import("../pages/BlogsPage.jsx"));
 const BlogDetailPage = lazy(() => import("../pages/BlogDetailPage.jsx"));
 const RoadmapsPage = lazy(() => import("../pages/RoadmapsPage.jsx"));
+const RoadmapDetailPage = lazy(() => import("../pages/RoadmapDetailPage.jsx"));
 const GlossaryPage = lazy(() => import("../pages/GlossaryPage.jsx"));
 const GlossaryDetailPage = lazy(() => import("../pages/GlossaryDetailPage.jsx"));
 const AIDiscussionPage = lazy(() => import("../pages/AIDiscussionPage.jsx"));
@@ -70,39 +71,43 @@ const AppRoutes = () =>
     },
     {
       path: "/blogs",
-      element: <BlogsPage />, // Placeholder for blogs 
+      element: <BlogsPage />, 
     },
     {
       path: "/blogs/:id",
-      element: <BlogDetailPage  />, // Placeholder for blogs Details 
+      element: <BlogDetailPage  />, 
     },
     {
       path: "/roadmaps",
-      element: <RoadmapsPage />, // Placeholder for roadmaps (static)
+      element: <RoadmapsPage />, 
+    },
+    {
+      path: "/roadmaps/:id",
+      element: <RoadmapDetailPage  />, 
     },
     {
       path: "/glossary",
-      element: <GlossaryPage />, // Placeholder for glossary (static)
+      element: <GlossaryPage />, 
     },
     {
       path: "/glossary/:termId",
-      element: <GlossaryDetailPage />, // Placeholder for glossary detail (static)
+      element: <GlossaryDetailPage />, 
     },
     {
       path: "/ai-discussion",
-      element: <AIDiscussionPage />, // Placeholder for AI discussion (static or future AI feature)
+      element: <AIDiscussionPage />, 
     },
     {
       path: "/pricing",
-      element: <PricingPage />, // Placeholder for pricing (static)
+      element: <PricingPage />, 
     },
     {
       path: "/login",
-      element: <LoginPage />, // Login form (POST /login)
+      element: <LoginPage />, 
     },
     {
       path: "/signup",
-      element: <SignupPage />, // Signup form (POST /register)
+      element: <SignupPage />, 
     },
     {
       path: "/verify-email",
