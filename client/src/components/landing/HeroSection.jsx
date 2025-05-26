@@ -19,15 +19,96 @@ import typescript from "../../assets/languages/typeScript.png";
 export default function HeroSection() {
   // Array of language images with their positions, rotations, and sizes
   const languages = [
-    { src: cPlusPlus, alt: "C++", style: { top: "15%", left: "10%", width: "100px", transform: "rotate(-15deg)" } },
-    { src: goLang, alt: "Go", style: { top: "15%", right: "15%", width: "100px", transform: "rotate(10deg)" } },
-    { src: java, alt: "Java", style: { bottom: "25%", left: "12%", width: "130px", transform: "rotate(-10deg)" } },
-    { src: typescript, alt: "TypeScript", style: { bottom: "37%", right: "8%", width: "50px", transform: "rotate(-20deg)" } },
-    { src: php, alt: "PHP", style: { bottom: "25%", right: "30%", width: "50px", transform: "rotate(15deg)" } },
-    { src: python, alt: "Python", style: { top: "35%", right: "19%", width: "90px", transform: "rotate(-10deg)" } },
-    { src: ruby, alt: "Ruby", style: { top: "43%", left: "18%", width: "60px", transform: "rotate(20deg)" } },
-    { src: rust, alt: "Rust", style: { top: "10%", right: "40%", width: "65px", transform: "rotate(-5deg)" } },
-    { src: javascript, alt: "JavaScript", style: { top: "17%", left: "38%", width: "90px", transform: "rotate(8deg)" } },
+    {
+      src: cPlusPlus,
+      alt: "C++",
+      style: {
+        top: "15%",
+        left: "10%",
+        width: "100px",
+        transform: "rotate(-15deg)",
+      },
+    },
+    {
+      src: goLang,
+      alt: "Go",
+      style: {
+        top: "15%",
+        right: "15%",
+        width: "100px",
+        transform: "rotate(10deg)",
+      },
+    },
+    {
+      src: java,
+      alt: "Java",
+      style: {
+        bottom: "25%",
+        left: "12%",
+        width: "130px",
+        transform: "rotate(-10deg)",
+      },
+    },
+    {
+      src: typescript,
+      alt: "TypeScript",
+      style: {
+        bottom: "37%",
+        right: "8%",
+        width: "50px",
+        transform: "rotate(-20deg)",
+      },
+    },
+    {
+      src: php,
+      alt: "PHP",
+      style: {
+        bottom: "25%",
+        right: "30%",
+        width: "50px",
+        transform: "rotate(15deg)",
+      },
+    },
+    {
+      src: python,
+      alt: "Python",
+      style: {
+        top: "35%",
+        right: "19%",
+        width: "90px",
+        transform: "rotate(-10deg)",
+      },
+    },
+    {
+      src: ruby,
+      alt: "Ruby",
+      style: {
+        top: "43%",
+        left: "18%",
+        width: "60px",
+        transform: "rotate(20deg)",
+      },
+    },
+    {
+      src: rust,
+      alt: "Rust",
+      style: {
+        top: "10%",
+        right: "40%",
+        width: "65px",
+        transform: "rotate(-5deg)",
+      },
+    },
+    {
+      src: javascript,
+      alt: "JavaScript",
+      style: {
+        top: "17%",
+        left: "38%",
+        width: "90px",
+        transform: "rotate(8deg)",
+      },
+    },
   ];
 
   return (
@@ -38,11 +119,23 @@ export default function HeroSection() {
         <defs>
           <radialGradient id="radialFadeGradient" cx="50%" cy="50%" r="58%">
             <stop offset="0%" style={{ stopColor: "white", stopOpacity: 1 }} />
-            <stop offset="50%" style={{ stopColor: "white", stopOpacity: 0.6 }} />
-            <stop offset="100%" style={{ stopColor: "white", stopOpacity: 0 }} />
+            <stop
+              offset="50%"
+              style={{ stopColor: "white", stopOpacity: 0.6 }}
+            />
+            <stop
+              offset="100%"
+              style={{ stopColor: "white", stopOpacity: 0 }}
+            />
           </radialGradient>
           <mask id="radialFadeMask">
-            <rect x="0" y="0" width="100%" height="100%" fill="url(#radialFadeGradient)" />
+            <rect
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              fill="url(#radialFadeGradient)"
+            />
           </mask>
         </defs>
 
@@ -63,7 +156,9 @@ export default function HeroSection() {
       {/* Language PNGs scattered in the background */}
       {languages.map((language, index) => {
         // Extract the rotation angle from the transform string (e.g., "rotate(-15deg)")
-        const rotateMatch = language.style.transform.match(/rotate\(([-]?\d+)deg\)/);
+        const rotateMatch = language.style.transform.match(
+          /rotate\(([-]?\d+)deg\)/
+        );
         const rotateAngle = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
 
         // Remove the transform from the style to avoid conflicts with Framer Motion
@@ -139,7 +234,8 @@ export default function HeroSection() {
         <p className="z-10 text-lg font-medium md:text-lg text-gray-500 max-w-3xl mb-8 mx-auto satoshi">
           Train rigorously, solve real challenges, and sharpen your coding mind.{" "}
           <br />
-          LeetLabs is your lab to practice and push past your limits — built for coders who want to lead.
+          LeetLabs is your lab to practice and push past your limits — built for
+          coders who want to lead.
         </p>
         <div className="flex justify-center gap-5 max-w-3xl mb-8 mx-auto satoshi">
           <Link to="/signup">
@@ -154,7 +250,7 @@ export default function HeroSection() {
             </ShimmerButton>
           </Link>
           <Link
-            to="/login"
+            to="/sheets/public"
             className="z-10 transition-all duration-300 ease-in-out text-gray-600 border hover:border-yellow-600 border-gray-600 hover:shadow-[0_2px_2px_#f5b210] px-6 py-3 rounded-md text-lg font-semibold bg-white"
           >
             Explore Sheets
