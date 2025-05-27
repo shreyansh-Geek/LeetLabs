@@ -1,5 +1,6 @@
 # LeetLabs
-![Leetlabs-logo-dark](https://github.com/user-attachments/assets/25859c16-fa4f-4ef5-9e35-95692bb6873d)
+![Black   White Minimalist Business Logo (2)](https://github.com/user-attachments/assets/3bf0d8e7-ffbc-4cab-9963-03b8b4e2aa13)
+
 
 **LeetLabs is a comprehensive, modern platform designed for developers and coding enthusiasts to practice problem-solving, track their progress, explore learning roadmaps, manage personalized problem sheets, and engage with an AI-powered coding assistant.**
 
