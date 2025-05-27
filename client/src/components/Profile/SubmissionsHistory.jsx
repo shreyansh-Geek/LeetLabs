@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, ChevronRight } from 'lucide-react';
 import { useProfile } from '@/lib/profile';
-import Navbar from '../components/landing/Navbar.jsx';
 
-const SubmissionsPage = () => {
+const SubmissionsHistory = () => {
   const { fetchAllUserSubmissions, allSubmissions } = useProfile();
   const [submissionHistory, setSubmissionHistory] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'submittedAt', direction: 'desc' });
@@ -137,70 +137,70 @@ const SubmissionsPage = () => {
   };
 
   return (
-    <div>
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 py-8 mt-20">
-        <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl p-6 border border-neutral-700/50">
-          <h1 className="text-3xl font-bold text-white mb-6">Submissions</h1>
-          {submissionHistory.length === 0 ? (
-            <div className="text-gray-400 text-center py-8">No submissions yet. Start solving problems!</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <div className="mb-4 text-gray-200 text-sm">
-                <span className="font-medium">Average Runtime: </span>{averages.runtime} |{' '}
-                <span className="font-medium">Average Memory: </span>{averages.memory}
-              </div>
-              <table className="w-full text-left text-sm text-gray-200">
-                <thead>
-                  <tr className="border-b border-neutral-700/50">
-                    <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort('submittedAt')}>
-                      Date {sortConfig.key === 'submittedAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th className="py-3 px-4">Problem</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Language</th>
-                    <th className="py-3 px-4">Runtime</th>
-                    <th className="py-3 px-4">Memory</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {submissionHistory.map((sub, index) => {
-                    const { bg, text, icon } = getStatusStyles(sub.status);
-                    return (
-                      <motion.tr
-                        key={sub.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="border-b border-neutral-700/20 hover:bg-neutral-800/50"
-                      >
-                        <td className="py-3 px-4">{sub.submittedAt.toLocaleDateString()}</td>
-                        <td className="py-3 px-4">{sub.problemTitle}</td>
-                        <td className="py-3 px-4">
-                          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${bg} ${text}`}>
-                            {icon}
-                            <span className="font-medium">
-                              {sub.status
-                                .toLowerCase()
-                                .replace('_', ' ')
-                                .replace(/\b\w/g, (c) => c.toUpperCase())}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">{sub.language}</td>
-                        <td className="py-3 px-4">{sub.runtime}</td>
-                        <td className="py-3 px-4">{sub.memory}</td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+    <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl p-6 border border-neutral-700/50 col-span-full">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-bold text-white">Submission History</h3>
+        <Link to="/submissions" className="text-[#f5b210] hover:text-yellow-400 text-sm font-medium flex items-center gap-1">
+          View All Submissions <ChevronRight className="h-4 w-4" />
+        </Link>
       </div>
+      {submissionHistory.length === 0 ? (
+        <div className="text-gray-400 text-center py-8">No submissions yet. Start solving problems!</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className="mb-4 text-gray-200 text-sm">
+            <span className="font-medium">Average Runtime: </span>{averages.runtime} |{' '}
+            <span className="font-medium">Average Memory: </span>{averages.memory}
+          </div>
+          <table className="w-full text-left text-sm text-gray-200">
+            <thead>
+              <tr className="border-b border-neutral-700/50">
+                <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort('submittedAt')}>
+                  Date {sortConfig.key === 'submittedAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="py-3 px-4">Problem</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Language</th>
+                <th className="py-3 px-4">Runtime</th>
+                <th className="py-3 px-4">Memory</th>
+              </tr>
+            </thead>
+            <tbody>
+              {submissionHistory.map((sub, index) => {
+                const { bg, text, icon } = getStatusStyles(sub.status);
+                return (
+                  <motion.tr
+                    key={sub.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="border-b border-neutral-700/20 hover:bg-neutral-800/50"
+                  >
+                    <td className="py-3 px-4">{sub.submittedAt.toLocaleDateString()}</td>
+                    <td className="py-3 px-4">{sub.problemTitle}</td>
+                    <td className="py-3 px-4">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${bg} ${text}`}>
+                        {icon}
+                        <span className="font-medium">
+                          {sub.status
+                            .toLowerCase()
+                            .replace('_', ' ')
+                            .replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">{sub.language}</td>
+                    <td className="py-3 px-4">{sub.runtime}</td>
+                    <td className="py-3 px-4">{sub.memory}</td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
 
-export default SubmissionsPage;
+export default SubmissionsHistory;

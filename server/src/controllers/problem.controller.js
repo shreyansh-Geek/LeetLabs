@@ -284,3 +284,105 @@ export const getAllProblemsSolvedByUser = async (req, res) => {
     });
   }
 };
+
+export const getUserSolvedProblemsCount = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const count = await db.problemSolved.count({
+      where: { userId },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'User solved problems count fetched successfully',
+      count,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      error: 'Error while fetching user solved problems count',
+    });
+  }
+};
+
+export const getDifficultyStats = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    console.log('Fetching difficulty stats for userId:', userId); // Debug log
+
+    // Fetch solved problems directly from ProblemSolved
+    const solvedProblems = await db.problemSolved.findMany({
+      where: { userId },
+      include: {
+        problem: {
+          select: { difficulty: true },
+        },
+      },
+    });
+
+    if (!solvedProblems || solvedProblems.length === 0) {
+      console.log('No solved problems found for userId:', userId);
+      return res.status(200).json({
+        success: true,
+        message: 'No solved problems found, returning zeroed stats',
+        stats: { easy: 0, medium: 0, hard: 0 },
+      });
+    }
+
+    // Aggregate by difficulty
+    const stats = { easy: 0, medium: 0, hard: 0 };
+    solvedProblems.forEach(({ problem }) => {
+      if (problem.difficulty === 'EASY') stats.easy += 1;
+      else if (problem.difficulty === 'MEDIUM') stats.medium += 1;
+      else if (problem.difficulty === 'HARD') stats.hard += 1;
+    });
+
+    console.log('Difficulty stats for userId:', userId, stats); // Debug log
+
+    return res.status(200).json({
+      success: true,
+      message: 'Difficulty stats fetched successfully',
+      stats,
+    });
+  } catch (error) {
+    console.error('Error in getDifficultyStats:', error.message, error.stack);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch difficulty stats. Please try again later.',
+    });
+  }
+};
+
+export const getSkillsData = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const solvedProblems = await prisma.submission.findMany({
+      where: { userId, status: "Accepted" },
+      select: { problem: { select: { tags: true } } },
+    });
+    const uniqueSkills = [...new Set(solvedProblems.flatMap((sub) => sub.problem.tags))];
+    const skillsData = await Promise.all(
+      uniqueSkills.map(async (skill) => {
+        const problemsCount = await prisma.submission.count({
+          where: {
+            userId,
+            status: "Accepted",
+            problem: { tags: { has: skill } },
+          },
+        });
+        return {
+          skill,
+          level: problemsCount * 10,
+          problems: problemsCount,
+        };
+      })
+    );
+    res.status(200).json({
+      success: true,
+      message: "Skills data fetched successfully",
+      skills: skillsData,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
