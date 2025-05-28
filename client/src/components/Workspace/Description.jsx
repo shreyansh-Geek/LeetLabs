@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Star, Tag, Lightbulb, MessageSquare, Users } from 'lucide-react';
+import { ChevronDown, ChevronUp, Star, Tag, Lightbulb, MessageSquare, Users, GraduationCap, Building} from 'lucide-react';
+import {IconBuildings} from '@tabler/icons-react'
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -40,6 +41,10 @@ const Description = ({ problem, isStarred, setIsStarred }) => {
     }
   };
 
+  const KNOWN_COMPANIES = [
+    'Google', 'Amazon', 'Microsoft', 'Facebook', 'Apple', 'Atlassian', 'Uber', 'Bloomberg', 'Adobe', 'Cisco', 'Tcs', 'infosys', 'Goldman Sachs', 'JP Morgan', 'Paypal', 'Zoho', 'VM Ware', 'Oracle'
+  ];
+
   const parseConstraints = (constraints) => {
     if (!constraints) return [];
     return constraints
@@ -56,12 +61,17 @@ const Description = ({ problem, isStarred, setIsStarred }) => {
       .map((line) => line.replace(/^\d+\.\s*/, '').trim());
   };
 
+  // Split tags into topic and company tags
+  const topicTags = problem?.tags?.filter(tag => !KNOWN_COMPANIES.includes(tag)) || [];
+  const companyTags = problem?.tags?.filter(tag => KNOWN_COMPANIES.includes(tag)) || [];
+
   const constraints = parseConstraints(problem?.constraints);
   const hints = parseHints(problem?.hints);
 
   return (
     <div className="p-6 text-white font-satoshi bg-[#1A1A1A]">
-      
+      <Toaster />
+
       {/* Header Section */}
       <div className="mb-8 border-b border-[#333333] pb-4">
         <div className="flex items-center justify-between">
@@ -78,12 +88,22 @@ const Description = ({ problem, isStarred, setIsStarred }) => {
           <span className={cn('px-2 py-0.5 text-xs font-medium rounded', getDifficultyStyle(problem?.difficulty))}>
             {problem?.difficulty || 'Unknown'}
           </span>
-          <div className="flex gap-1">
-            {problem?.tags?.map((tag) => (
+          <div className="flex gap-1 flex-wrap">
+            {topicTags.slice(0, 3).map((tag) => (
               <span key={tag} className="px-2 py-0.5 text-xs bg-[#2A2A2A] text-gray-300 rounded">
                 {tag}
               </span>
             ))}
+            {companyTags.slice(0, 2).map((tag) => (
+              <span key={tag} className="px-2 py-0.5 text-xs bg-[#2A2A2A] text-[#f5b210] rounded">
+                {tag}
+              </span>
+            ))}
+            {(topicTags.length > 3 || companyTags.length > 2) && (
+              <span className="px-2 py-0.5 text-xs bg-[#2A2A2A] text-gray-300 rounded">
+                +{(topicTags.length - 3) + (companyTags.length - 2)} more
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -181,12 +201,43 @@ const Description = ({ problem, isStarred, setIsStarred }) => {
             {expandedSections.tags ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
           {expandedSections.tags && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {problem?.tags?.map((tag) => (
-                <span key={tag} className="px-2 py-0.5 text-xs bg-[#333333] text-gray-300 rounded">
-                  {tag}
-                </span>
-              )) || <p className="text-gray-400 text-sm">No tags available</p>}
+            <div className="mt-2">
+              {/* Topic Tags */}
+              {topicTags.length > 0 ? (
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-2 flex items-center">
+                    <GraduationCap className="h-4 w-4 mr-2 text-[#f5b210]" />
+                    Topic Tags
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {topicTags.map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 text-xs bg-[#333333] text-gray-300 rounded">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">No topic tags available</p>
+              )}
+              {/* Company Tags */}
+              {companyTags.length > 0 ? (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-300 mb-2 flex items-center">
+                    <IconBuildings className="h-4 w-4 mr-2 text-[#f5b210]" />
+                    Company Tags
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {companyTags.map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 text-xs bg-[#333333] text-[#f5b210] rounded">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">No company tags available</p>
+              )}
             </div>
           )}
         </div>
