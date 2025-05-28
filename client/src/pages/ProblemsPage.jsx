@@ -72,6 +72,9 @@ const ProblemsPage = () => {
   const [isTopicsModalOpen, setIsTopicsModalOpen] = useState(false);
   const [isAddToSheetModalOpen, setIsAddToSheetModalOpen] = useState(false);
   const [selectedProblemId, setSelectedProblemId] = useState(null);
+  const KNOWN_COMPANIES = [
+    'Google', 'Amazon', 'Microsoft', 'Facebook', 'Apple', 'Atlassian', 'Uber', 'Bloomberg', 'Adobe', 'Cisco', 'Tcs', 'Infosys', 'Goldman Sachs', 'JP Morgan', 'Paypal', 'Zoho', 'VM Ware', 'Oracle'
+  ];
 
   // Load notes from local storage on mount
   useEffect(() => {
@@ -125,14 +128,13 @@ const ProblemsPage = () => {
     const statusCounts = { Solved: 0, Unsolved: 0 };
 
     problems.forEach((problem) => {
-      if (problem.companies && Array.isArray(problem.companies)) {
-        problem.companies.forEach((company) => {
-          companyCounts[company] = (companyCounts[company] || 0) + 1;
-        });
-      }
       if (problem.tags && Array.isArray(problem.tags)) {
         problem.tags.forEach((tag) => {
-          topicCounts[tag] = (topicCounts[tag] || 0) + 1;
+          if (KNOWN_COMPANIES.includes(tag)) {
+            companyCounts[tag] = (companyCounts[tag] || 0) + 1;
+          } else {
+            topicCounts[tag] = (topicCounts[tag] || 0) + 1;
+          }
         });
       }
       if (problem.difficulty) {
@@ -158,12 +160,12 @@ const ProblemsPage = () => {
     }
     if (topicFilter.length > 0) {
       filtered = filtered.filter((problem) =>
-        problem.tags.some((tag) => topicFilter.includes(tag))
+        problem.tags.some((tag) => topicFilter.includes(tag) && !KNOWN_COMPANIES.includes(tag))
       );
     }
     if (companyFilter.length > 0) {
       filtered = filtered.filter((problem) =>
-        problem.companies.some((company) => companyFilter.includes(company))
+        problem.tags.some((tag) => companyFilter.includes(tag) && KNOWN_COMPANIES.includes(tag))
       );
     }
     if (statusFilter.length > 0) {
