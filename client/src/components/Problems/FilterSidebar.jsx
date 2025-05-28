@@ -37,7 +37,7 @@ const FilterSidebar = ({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5 }}
-      className="md:w-1/4"
+      className="w-full md:w-1/4 max-w-74 md:sticky md:top-16 max-h-[calc(100vh-64px)] overflow-y-auto"
     >
       <div className="bg-neutral-900/80 backdrop-blur-lg rounded-lg p-4 shadow-lg border border-neutral-800/50">
         <div className="flex justify-between items-center mb-4">
