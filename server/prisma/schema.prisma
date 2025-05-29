@@ -47,6 +47,8 @@ model User {
   refreshTokenExpiry DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  googleId String? @unique
+  githubId String? @unique
 
   problems Problem[]
   submission Submission[]
