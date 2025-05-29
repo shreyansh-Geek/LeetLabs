@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import Spline from "@splinetool/react-spline";
 import Navbar from "../components/landing/Navbar.jsx";
 import {
@@ -69,6 +69,17 @@ const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   console.log("Rendering SignupPage");
+
+   const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("error") === "auth_failed") {
+      toast.error("Authentication failed", {
+        description: "Please try again.",
+      });
+    }
+  }, [location]);
 
   const form = useForm({
     resolver: zodResolver(formSchema),

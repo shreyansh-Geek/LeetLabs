@@ -3,6 +3,7 @@ import { db } from "../utils/db.js";
 import { UserRole } from "../generated/prisma/index.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import passport from "../utils/passport.js";
 import { sendMail } from "../utils/mailer.js";
 import {
   registrationMailTemplate, passwordResetMailTemplate} from "../utils/mailTemplates.js";
@@ -386,5 +387,94 @@ export const resetPassword = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Something went wrong", success: false });
+  }
+};
+
+// OAuth Routes
+export const googleAuth = passport.authenticate("google", {
+  scope: ["profile", "email"],
+});
+
+export const googleCallback = async (req, res) => {
+  try {
+    const user = req.user;
+
+    const accessToken = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.ACCESSTOKEN_SECRET,
+      { expiresIn: process.env.ACCESSTOKEN_EXPIRY }
+    );
+    const refreshToken = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.REFRESHTOKEN_SECRET,
+      { expiresIn: process.env.REFRESHTOKEN_EXPIRY }
+    );
+
+    await db.user.update({
+      where: { id: user.id },
+      data: { refreshToken },
+    });
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV !== "development",
+      maxAge: 1 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV !== "development",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.redirect(`${process.env.FRONTEND_URL}/profile`);
+  } catch (error) {
+    console.error("Google Callback Error:", error);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+  }
+};
+
+export const githubAuth = passport.authenticate("github", {
+  scope: ["user:email"],
+});
+
+export const githubCallback = async (req, res) => {
+  try {
+    const user = req.user;
+
+    const accessToken = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.ACCESSTOKEN_SECRET,
+      { expiresIn: process.env.ACCESSTOKEN_EXPIRY }
+    );
+    const refreshToken = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.REFRESHTOKEN_SECRET,
+      { expiresIn: process.env.REFRESHTOKEN_EXPIRY }
+    );
+
+    await db.user.update({
+      where: { id: user.id },
+      data: { refreshToken },
+    });
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV !== "development",
+      maxAge: 1 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV !== "development",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.redirect(`${process.env.FRONTEND_URL}/profile`);
+  } catch (error) {
+    console.error("GitHub Callback Error:", error);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
   }
 };

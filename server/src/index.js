@@ -1,5 +1,7 @@
 import express from 'express'
 import dotenv from 'dotenv'
+import session from "express-session";
+import passport from "./utils/passport.js";
 import authRoutes from './routes/auth.routes.js'
 import problemRoutes from './routes/problem.routes.js'
 import executeCodeRoutes from "./routes/executeCode.routes.js"
@@ -26,6 +28,17 @@ app.use(cors({
     origin: 'http://localhost:5173',
     credentials: true
 }))
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === "production" },
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Increase payload size limit to 10MB
 app.use(bodyParser.json({ limit: "10mb" }));
