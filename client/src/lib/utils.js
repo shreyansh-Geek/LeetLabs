@@ -23,12 +23,20 @@ export const apiFetch = async (endpoint, method = 'GET', body = null) => {
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, options);
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Request failed');
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: `HTTP ${response.status}` };
+      }
+      const error = new Error(errorData.message || 'Request failed');
+      error.status = response.status;
+      error.data = errorData;
+      throw error;
     }
     return response.json();
   } catch (error) {
-    throw new Error(error.message || 'Network error');
+    throw error;
   }
 };
 

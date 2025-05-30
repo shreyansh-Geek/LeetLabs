@@ -1,28 +1,61 @@
+// client/src/components/Problems/UpdateProblemForm.jsx
 "use client";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, Code2, FileText, Lightbulb, BookOpen, CheckCircle2, Download, Eye, Save } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Code2,
+  FileText,
+  Lightbulb,
+  BookOpen,
+  CheckCircle2,
+  Save,
+  Eye,
+} from "lucide-react";
 import Editor from "@monaco-editor/react";
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "../ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "../ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Badge } from "../ui/badge";
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  DndContext,
+  closestCenter,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useProblems } from "../../lib/problems";
-import PreviewModal from "../Problems/PreviewModal.jsx";
-import { supportedLanguages, sampledpData, sampleStringProblem } from "../../sampleProblemData";
+import PreviewModal from "./PreviewModal";
+import { supportedLanguages } from "../../sampleProblemData";
 
-// Dynamic language schema
+// Validation schema
 const languageSchema = z.object({
   language: z.string().min(1, "Language is required"),
   example: z.object({
@@ -37,15 +70,17 @@ const languageSchema = z.object({
 const problemSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
-  difficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
-  tags: z.array(z.string()).min(1, "At least one tag is required"),
+  difficulty: z.enum(["EASY", "MEDIUM", "HARD"], {
+    errorMap: () => ({ message: "Difficulty must be EASY, MEDIUM, or HARD" }),
+  }),
+  tags: z.array(z.string().min(1, "Tag cannot be empty")).min(1, "At least one tag is required"),
   constraints: z.string().min(1, "Constraints are required"),
   hints: z.string().optional(),
   editorial: z.string().optional(),
   testCases: z
     .array(
       z.object({
-        id: z.string().optional(), // For dnd-kit
+        id: z.string().optional(),
         input: z.string().min(1, "Input is required"),
         output: z.string().min(1, "Output is required"),
         isHidden: z.boolean().default(false),
@@ -161,7 +196,7 @@ const SortableTag = ({ field, index, remove, form }) => {
         render={({ field }) => (
           <FormItem>
             <FormControl>
-              <Badge className="bg-[#3b3b3b] text-[#e0e0e0] hover:bg-[#eab308]/20 p-2 cursor-move">
+              <Badge className="bg-[#3b3b3b] text-[#e0e0e0] hover:bg-[#eab308]/20 p-2 cursor-move rounded-md">
                 <Input
                   {...field}
                   placeholder="Tag"
@@ -186,14 +221,14 @@ const SortableTag = ({ field, index, remove, form }) => {
   );
 };
 
-const CreateProblemForm = () => {
-  const [sampleType, setSampleType] = useState("DP");
-  const [activeLanguage, setActiveLanguage] = useState(supportedLanguages[0].id);
+const UpdateProblemForm = () => {
+  const [activeLanguage, setActiveLanguage] = useState(supportedLanguages[0]?.id || "");
   const [showPreview, setShowPreview] = useState(false);
-  const [isCreating, setIsCreating] = useState(false); 
+  const [selectedProblemId, setSelectedProblemId] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false); 
   const navigate = useNavigate();
 
-  const { createProblem, isLoading, error, clearError } = useProblems();
+  const { problems, fetchAllProblems, updateProblemById, isLoading, error, clearError } = useProblems();
 
   const form = useForm({
     resolver: zodResolver(problemSchema),
@@ -213,14 +248,23 @@ const CreateProblemForm = () => {
         referenceSolution: `// ${lang.name} reference solution`,
       })),
     },
+    mode: "onChange",
   });
 
-  const { fields: testCaseFields, append: appendTestCase, remove: removeTestCase, replace: replaceTestCases, swap } =
-    useFieldArray({ control: form.control, name: "testCases", keyName: "id" });
-  const { fields: tagFields, append: appendTag, remove: removeTag, replace: replaceTags, swap: swapTags } = useFieldArray({
-    control: form.control,
-    name: "tags",
-  });
+  const {
+    fields: testCaseFields,
+    append: appendTestCase,
+    remove: removeTestCase,
+    replace: replaceTestCases,
+    swap,
+  } = useFieldArray({ control: form.control, name: "testCases", keyName: "id" });
+  const {
+    fields: tagFields,
+    append: appendTag,
+    remove: removeTag,
+    replace: replaceTags,
+    swap: swapTags,
+  } = useFieldArray({ control: form.control, name: "tags" });
   const { fields: languageFields } = useFieldArray({ control: form.control, name: "languages" });
 
   const sensors = useSensors(
@@ -229,14 +273,102 @@ const CreateProblemForm = () => {
     })
   );
 
+  // Fetch problems on mount
+  useEffect(() => {
+    fetchAllProblems().catch(() => {
+      toast.error("Failed to load problems", {
+        style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
+      });
+    });
+  }, [fetchAllProblems]);
+
+  // Load problem data when selected
+  useEffect(() => {
+    if (selectedProblemId && problems.length > 0) {
+      const problem = problems.find((p) => p.id === selectedProblemId);
+      if (problem) {
+        const transformedTestCases = problem.testcases?.length
+          ? problem.testcases.map((tc, index) => ({
+              id: `tc${index}-${Date.now()}`,
+              input: tc.input || "",
+              output: tc.output || "",
+              isHidden: tc.isHidden || false,
+            }))
+          : [{ id: `tc${Date.now()}`, input: "", output: "", isHidden: false }];
+
+        const transformedLanguages = supportedLanguages.map((lang, index) => ({
+          language: lang.id,
+          example: problem.examples?.[lang.id] || { input: "", output: "", explanation: "" },
+          codeSnippet: problem.codeSnippets?.[lang.id] || `// ${lang.name} starter code`,
+          referenceSolution: problem.referenceSolutions?.[lang.id] || `// ${lang.name} reference solution`,
+        }));
+
+        const transformedTags = problem.tags?.length ? problem.tags : [""];
+
+        form.reset({
+          title: problem.title || "",
+          description: problem.description || "",
+          difficulty: problem.difficulty || "EASY",
+          tags: transformedTags,
+          constraints: problem.constraints || "",
+          hints: problem.hints || "",
+          editorial: problem.editorial || "",
+          testCases: transformedTestCases,
+          languages: transformedLanguages,
+        });
+
+        replaceTestCases(transformedTestCases);
+        replaceTags(transformedTags);
+
+        toast.info(`Loaded problem: ${problem.title}`, {
+          style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
+        });
+      }
+    }
+  }, [selectedProblemId, problems, form, replaceTestCases, replaceTags]);
+
+  // Load draft if exists
+  useEffect(() => {
+    const draft = localStorage.getItem("updateProblemDraft");
+    if (draft) {
+      try {
+        const { problemId, formData } = JSON.parse(draft);
+        if (problemId && formData) {
+          setSelectedProblemId(problemId);
+          form.reset(formData);
+          toast.info("Loaded saved draft", {
+            style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
+          });
+        }
+      } catch (err) {
+        toast.error("Failed to load draft", {
+          style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
+        });
+      }
+    }
+  }, [form]);
+
+  // Clear errors on mount
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
+
   const onSubmit = async (data) => {
+    if (!selectedProblemId) {
+      toast.error("Please select a problem to update", {
+        style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
+        duration: 6000
+      });
+      return;
+    }
+
     try {
-      setIsCreating(true);
+      setIsUpdating(true);
       const transformedData = {
         title: data.title,
         description: data.description,
         difficulty: data.difficulty,
-        editorial: data.editorial,
+        editorial: data.editorial || "",
         tags: data.tags,
         testcases: data.testCases.map(({ id, ...rest }) => rest),
         examples: data.languages.reduce((acc, lang) => {
@@ -244,7 +376,7 @@ const CreateProblemForm = () => {
           return acc;
         }, {}),
         constraints: data.constraints,
-        hints: data.hints,
+        hints: data.hints || "",
         codeSnippets: data.languages.reduce((acc, lang) => {
           acc[lang.language] = lang.codeSnippet;
           return acc;
@@ -255,55 +387,45 @@ const CreateProblemForm = () => {
         }, {}),
       };
 
-      await createProblem(transformedData);
+      const response = await updateProblemById(selectedProblemId, transformedData);
 
-      toast.success("Problem created successfully!", {
+      // Log test case results
+      if (response.testResults && Array.isArray(response.testResults)) {
+        response.testResults.forEach(({ testcase, language, result }) => {
+          console.log(`Testcase ${testcase} for language ${language} ------ result ${JSON.stringify(result, null, 2)}`);
+        });
+      }
+
+      toast.success("Problem updated successfully!", {
         style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
       });
       form.reset();
-      localStorage.removeItem("problemDraft");
+      setSelectedProblemId(null);
+      localStorage.removeItem("updateProblemDraft");
       navigate("/problems");
     } catch (err) {
-      toast.error(error || "Error creating problem", {
+        console.log(err)
+      toast.error(error || "Error updating problem", {
         style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
       });
+      // Log test case results from error response
+      if (err.response?.data?.testResults && Array.isArray(err.response.data.testResults)) {
+        err.response.data.testResults.forEach(({ testcase, language, result }) => {
+          console.log(`Testcase ${testcase} for language ${language} ------ result ${JSON.stringify(result, null, 2)}`);
+        });
+      }
     } finally {
-      setIsCreating(false); // Stop loader
+      setIsUpdating(false); // Stop loader
     }
   };
 
-  const loadSampleData = useCallback(() => {
-    const sampleData = sampleType === "DP" ? sampledpData : sampleStringProblem;
-    replaceTags(sampleData.tags);
-    replaceTestCases(sampleData.testCases);
-    form.reset(sampleData);
-    setActiveLanguage(supportedLanguages[0].id);
-    toast.info("Sample data loaded successfully", {
-      style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
-    });
-  }, [sampleType, form, replaceTags, replaceTestCases]);
-
   const saveDraft = () => {
     const data = form.getValues();
-    localStorage.setItem("problemDraft", JSON.stringify(data));
+    localStorage.setItem("updateProblemDraft", JSON.stringify({ problemId: selectedProblemId, formData: data }));
     toast.success("Draft saved!", {
       style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
     });
   };
-
-  useEffect(() => {
-    const draft = localStorage.getItem("problemDraft");
-    if (draft) {
-      form.reset(JSON.parse(draft));
-      toast.info("Loaded saved draft", {
-        style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
-      });
-    }
-  }, [form]);
-
-  useEffect(() => {
-    clearError();
-  }, [clearError]);
 
   const languageTabs = useMemo(
     () =>
@@ -320,7 +442,6 @@ const CreateProblemForm = () => {
 
     const oldIndex = testCaseFields.findIndex((field) => field.id === active.id);
     const newIndex = testCaseFields.findIndex((field) => field.id === over.id);
-
     swap(oldIndex, newIndex);
   };
 
@@ -330,7 +451,6 @@ const CreateProblemForm = () => {
 
     const oldIndex = tagFields.findIndex((field) => field.id === active.id);
     const newIndex = tagFields.findIndex((field) => field.id === over.id);
-
     swapTags(oldIndex, newIndex);
   };
 
@@ -342,42 +462,30 @@ const CreateProblemForm = () => {
         transition={{ duration: 0.5 }}
         className="bg-[#1a1a1a] rounded-3xl border border-[#3b3b3b] shadow-2xl p-6 md:p-8"
       >
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <h2 className="text-3xl font-bold text-[#e0e0e0] flex items-center gap-3">
-            <FileText className="w-8 h-8 text-[#eab308]" />
-            Create New Problem
-          </h2>
-          <div className="flex gap-3 mt-4 md:mt-0">
-            <div className="flex">
-              <Button
-                className={`rounded-r-none bg-[#27272a] text-[#e0e0e0] hover:bg-[#eab308]/30 border border-[#3b3b3b] px-4 py-2 ${
-                  sampleType === "DP" ? "bg-[#eab308]/30" : ""
-                }`}
-                onClick={() => setSampleType("DP")}
-              >
-                DP Problem
-              </Button>
-              <Button
-                className={`rounded-l-none bg-[#27272a] text-[#e0e0e0] hover:bg-[#eab308]/30 border border-[#3b3b3b] px-4 py-2 ${
-                  sampleType === "string" ? "bg-[#eab308]/30" : ""
-                }`}
-                onClick={() => setSampleType("string")}
-              >
-                String Problem
-              </Button>
-            </div>
-            <Button
-              className="bg-[#eab308] text-[#1a1a1a] hover:bg-[#facc15] border border-[#eab308] shadow-md hover:shadow-lg transition-shadow px-4 py-2"
-              onClick={loadSampleData}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Load Sample
-            </Button>
-          </div>
-        </div>
+        {/* Problem Selection */}
+        <div className="mb-8 flex justify-start gap-5">
+  <Label className="text-[#e0e0e0] font-medium">Select Problem: </Label>
+  <Select onValueChange={setSelectedProblemId} value={selectedProblemId || ""}>
+    <SelectTrigger className="bg-[#3b3b3b] text-[#e0e0e0] border-[#3b3b3b] focus:ring-2 focus:ring-[#eab308] hover:shadow-sm transition-all">
+      <SelectValue placeholder="Select a problem" />
+    </SelectTrigger>
+    <SelectContent className="bg-[#27272a] text-[#e0e0e0] border-[#3b3b3b]">
+      {problems.length > 0 ? (
+        problems.map((problem) => (
+          <SelectItem key={problem.id} value={problem.id}>
+            {problem.title}
+          </SelectItem>
+        ))
+      ) : (
+        <div className="px-4 py-2 text-[#e0e0e0] opacity-50">No problems available</div>
+      )}
+    </SelectContent>
+  </Select>
+</div>
 
-        {/* Display error message if exists */}
+
+
+        {/* Error Display */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex justify-between items-center">
             <p className="text-red-400">{error}</p>
@@ -394,13 +502,9 @@ const CreateProblemForm = () => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 auto-rows-min">
               {/* Basic Info Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
                 className="col-span-1 md:col-span-2 lg:col-span-4 bg-[#27272a]/80 backdrop-blur-md border border-[#3b3b3b] rounded-2xl p-6 hover:shadow-xl transition-shadow"
               >
                 <h3 className="text-xl font-semibold text-[#e0e0e0] flex items-center gap-2 mb-4">
@@ -431,7 +535,7 @@ const CreateProblemForm = () => {
                     render={({ field }) => (
                       <FormItem>
                         <Label className="text-[#e0e0e0] font-medium">Difficulty</Label>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="bg-[#3b3b3b] text-[#e0e0e0] border-[#3b3b3b] focus:ring-2 focus:ring-[#eab308] hover:shadow-sm transition-all">
                               <SelectValue placeholder="Select difficulty" />
@@ -452,9 +556,6 @@ const CreateProblemForm = () => {
 
               {/* Description Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
                 className="col-span-1 md:col-span-2 lg:col-span-8 bg-[#27272a]/80 backdrop-blur-md border border-[#3b3b3b] rounded-2xl p-6 hover:shadow-xl transition-shadow"
               >
                 <h3 className="text-xl font-semibold text-[#e0e0e0] flex items-center gap-2 mb-4">
@@ -482,9 +583,6 @@ const CreateProblemForm = () => {
 
               {/* Tags Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
                 className="col-span-1 md:col-span-2 lg:col-span-4 bg-[#27272a]/80 backdrop-blur-md border border-[#3b3b3b] rounded-2xl p-6 hover:shadow-xl transition-shadow"
               >
                 <h3 className="text-xl font-semibold text-[#e0e0e0] flex items-center gap-2 mb-4">
@@ -504,18 +602,24 @@ const CreateProblemForm = () => {
                   <SortableContext items={tagFields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
                     <div className="flex flex-wrap gap-2">
                       {tagFields.map((field, index) => (
-                        <SortableTag key={field.id} field={{ ...field, id: field.id || `tag${index}-${Date.now()}` }} index={index} remove={removeTag} form={form} />
+                        <SortableTag
+                          key={field.id}
+                          field={{ ...field, id: field.id || `tag${index}-${Date.now()}` }}
+                          index={index}
+                          remove={removeTag}
+                          form={form}
+                        />
                       ))}
                     </div>
                   </SortableContext>
                 </DndContext>
+                {form.formState.errors.tags && (
+                  <p className="text-red-400 text-sm mt-2">{form.formState.errors.tags.message}</p>
+                )}
               </motion.div>
 
               {/* Test Cases Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.3 }}
                 className="col-span-1 md:col-span-2 lg:col-span-8 bg-[#27272a]/80 backdrop-blur-md border border-[#3b3b3b] rounded-2xl p-6 hover:shadow-xl transition-shadow"
               >
                 <h3 className="text-xl font-semibold text-[#e0e0e0] flex items-center gap-2 mb-4">
@@ -544,9 +648,6 @@ const CreateProblemForm = () => {
 
               {/* Language Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
                 className="col-span-1 md:col-span-2 lg:col-span-12 bg-[#27272a]/80 backdrop-blur-md border border-[#3b3b3b] rounded-2xl p-6 hover:shadow-xl transition-shadow"
               >
                 <h3 className="text-xl font-semibold text-[#e0e0e0] flex items-center gap-2 mb-4">
@@ -643,10 +744,10 @@ const CreateProblemForm = () => {
                         </div>
                         <div className="bg-[#3b3b3b]/50 rounded-lg border border-[#3b3b3b] p-6 hover:shadow-lg transition-shadow">
                           <h4 className="text-lg font-semibold text-[#e0e0e0] mb-4">Example</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
-                              name={`languages.${index}.example.input`}
+                              name={`languages[${index}].example.input`}
                               render={({ field }) => (
                                 <FormItem>
                                   <Label className="text-[#e0e0e0]">Input</Label>
@@ -654,7 +755,7 @@ const CreateProblemForm = () => {
                                     <textarea
                                       {...field}
                                       placeholder="Example input"
-                                      className="min-h-20 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] border-[#3b3b3b] rounded-lg focus:ring-2 focus:ring-[#eab308] hover:shadow-sm transition-all"
+                                      className="min-h-20 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] rounded-lg focus:ring-2 focus:ring-[#eab308]"
                                     />
                                   </FormControl>
                                   <FormMessage className="text-red-400" />
@@ -663,7 +764,7 @@ const CreateProblemForm = () => {
                             />
                             <FormField
                               control={form.control}
-                              name={`languages.${index}.example.output`}
+                              name={`languages[${index}].example.output`}
                               render={({ field }) => (
                                 <FormItem>
                                   <Label className="text-[#e0e0e0]">Output</Label>
@@ -671,7 +772,7 @@ const CreateProblemForm = () => {
                                     <textarea
                                       {...field}
                                       placeholder="Example output"
-                                      className="min-h-20 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] border-[#3b3b3b] rounded-lg focus:ring-2 focus:ring-[#eab308] hover:shadow-sm transition-all"
+                                      className="min-h-20 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] rounded-lg focus:ring-2 focus:ring-[#eab308]"
                                     />
                                   </FormControl>
                                   <FormMessage className="text-red-400" />
@@ -680,7 +781,7 @@ const CreateProblemForm = () => {
                             />
                             <FormField
                               control={form.control}
-                              name={`languages.${index}.example.explanation`}
+                              name={`languages[${index}].example.explanation`}
                               render={({ field }) => (
                                 <FormItem className="md:col-span-2">
                                   <Label className="text-[#e0e0e0]">Explanation</Label>
@@ -688,7 +789,7 @@ const CreateProblemForm = () => {
                                     <textarea
                                       {...field}
                                       placeholder="Explain the example"
-                                      className="min-h-24 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] border-[#3b3b3b] rounded-lg focus:ring-2 focus:ring-[#eab308] hover:shadow-sm transition-all"
+                                      className="min-h-24 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] rounded-lg focus:ring-2 focus:ring-[#eab308]"
                                     />
                                   </FormControl>
                                   <FormMessage className="text-red-400" />
@@ -702,14 +803,12 @@ const CreateProblemForm = () => {
                   ))}
                 </Tabs>
               </motion.div>
+
               {/* Additional Info Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.5 }}
                 className="col-span-1 md:col-span-2 lg:col-span-12 bg-[#27272a]/80 backdrop-blur-md border border-[#3b3b3b] rounded-2xl p-6 hover:shadow-xl transition-shadow"
               >
-                <h3 className="text-xl font-semibold text-[#e0e0e0] flex items-center gap-2 mb-4">
+                <h3 className="text-xl font-semibold text-[#e0e0e0] flex items-center gap-2 mb-6">
                   <Lightbulb className="w-5 h-5 text-[#eab308]" />
                   Additional Information
                 </h3>
@@ -724,7 +823,7 @@ const CreateProblemForm = () => {
                           <textarea
                             {...field}
                             placeholder="Enter problem constraints"
-                            className="min-h-24 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] border-[#3b3b3b] rounded-lg focus:ring-2 focus:ring-[#eab308] hover:shadow-sm transition-all"
+                            className="min-h-24 w-full p-3 bg-[#3b3b3b] rounded-lg text-[#e0e0e0] focus:ring-2 focus:ring-[#eab308]"
                           />
                         </FormControl>
                         <FormMessage className="text-red-400" />
@@ -741,10 +840,10 @@ const CreateProblemForm = () => {
                           <textarea
                             {...field}
                             placeholder="Enter hints for solving the problem"
-                            className="min-h-24 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] border-[#3b3b3b] rounded-lg focus:ring-2 focus:ring-[#eab308] hover:shadow-sm transition-all"
+                            className="min-h-24 w-full p-3 bg-[#3b3b3b] rounded-lg text-[#e0e0e0] focus:ring-2 focus:ring-[#eab308]"
                           />
                         </FormControl>
-                        <FormMessage className="text-red-400" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -757,11 +856,11 @@ const CreateProblemForm = () => {
                         <FormControl>
                           <textarea
                             {...field}
-                            placeholder="Enter problem editorial/solution explanation"
-                            className="min-h-32 w-full p-3 resize-y bg-[#3b3b3b] text-[#e0e0e0] border-[#3b3b3b] rounded-lg focus:ring-2 focus:ring-[#eab308] hover:shadow-sm transition-all"
+                            placeholder="Enter problem editorial or solution explanation"
+                            className="min-h-32 w-full p-3 bg-[#3b3b3b] rounded-lg text-[#e0e0e0] focus:ring-2 focus:ring-[#eab308]"
                           />
                         </FormControl>
-                        <FormMessage className="text-red-400" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -773,33 +872,33 @@ const CreateProblemForm = () => {
             <div className="fixed bottom-6 right-6 flex gap-4">
               <Button
                 type="button"
-                className="bg-[#27272a] text-[#e0e0e0] hover:bg-[#eab308]/30 rounded-full shadow-lg hover:shadow-xl transition-shadow px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[#27272a] text-[#e0e0e0] hover:bg-[#eab308]/30 rounded-full shadow-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={saveDraft}
-                disabled={isLoading}
+                disabled={isLoading || !selectedProblemId}
               >
                 <Save className="w-5 h-5 mr-2" />
                 Save Draft
               </Button>
               <Button
                 type="button"
-                className="bg-[#27272a] text-[#e0e0e0] hover:bg-[#eab308]/30 rounded-full shadow-lg hover:shadow-xl transition-shadow px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[#27272a] text-[#e0e0e0] hover:bg-[#eab308]/30 rounded-full shadow-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => setShowPreview(true)}
-                disabled={isLoading}
+                disabled={isLoading || !selectedProblemId}
               >
                 <Eye className="w-5 h-5 mr-2" />
                 Preview
               </Button>
               <Button
                 type="submit"
-                className="bg-[#eab308] text-[#1a1a1a] hover:bg-[#facc15] rounded-full shadow-lg hover:shadow-xl transition-shadow px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading}
+                className="bg-[#eab308] text-[#1a1a1a] hover:bg-[#facc15] rounded-full shadow-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || !selectedProblemId}
               >
                 {isLoading ? (
                   <span className="loading loading-spinner text-[#1a1a1a]"></span>
                 ) : (
                   <>
                     <CheckCircle2 className="w-5 h-5 mr-2" />
-                    {isCreating ? 'Creating...' : 'Create Problem'}
+                    {isUpdating ? 'Updating...' : 'Update Problem'}
                   </>
                 )}
               </Button>
@@ -807,12 +906,10 @@ const CreateProblemForm = () => {
           </form>
         </Form>
 
-        {/* Preview Modal */}
-         <PreviewModal showPreview={showPreview} setShowPreview={setShowPreview} form={form} />
+        <PreviewModal showPreview={showPreview} setShowPreview={setShowPreview} form={form} />
       </motion.div>
     </div>
   );
 };
 
-export default CreateProblemForm;
-
+export default UpdateProblemForm;

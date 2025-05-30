@@ -154,6 +154,7 @@ export const updateProblemById = async (req, res) => {
   }
 
   try {
+    const testResults = [];
     if (referenceSolutions && testcases) {
       for (const [language, solutionCode] of Object.entries(
         referenceSolutions
@@ -215,6 +216,7 @@ export const updateProblemById = async (req, res) => {
       success: true,
       message: "Problem Updated Successfully",
       problem: updatedProblem,
+      testResults,
     });
   } catch (error) {
     console.log(error);
