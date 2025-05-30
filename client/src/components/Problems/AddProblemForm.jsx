@@ -190,6 +190,7 @@ const CreateProblemForm = () => {
   const [sampleType, setSampleType] = useState("DP");
   const [activeLanguage, setActiveLanguage] = useState(supportedLanguages[0].id);
   const [showPreview, setShowPreview] = useState(false);
+  const [isCreating, setIsCreating] = useState(false); 
   const navigate = useNavigate();
 
   const { createProblem, isLoading, error, clearError } = useProblems();
@@ -230,6 +231,7 @@ const CreateProblemForm = () => {
 
   const onSubmit = async (data) => {
     try {
+      setIsCreating(true);
       const transformedData = {
         title: data.title,
         description: data.description,
@@ -265,6 +267,8 @@ const CreateProblemForm = () => {
       toast.error(error || "Error creating problem", {
         style: { background: "#1a1a1a", color: "#e0e0e0", border: "1px solid #3b3b3b" },
       });
+    } finally {
+      setIsCreating(false); // Stop loader
     }
   };
 
@@ -795,7 +799,7 @@ const CreateProblemForm = () => {
                 ) : (
                   <>
                     <CheckCircle2 className="w-5 h-5 mr-2" />
-                    Create Problem
+                    {isCreating ? 'Creating...' : 'Create Problem'}
                   </>
                 )}
               </Button>
