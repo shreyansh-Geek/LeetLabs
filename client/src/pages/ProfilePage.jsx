@@ -7,7 +7,7 @@ import { useProfile } from '@/lib/profile';
 import Avatar from 'boring-avatars';
 import { cn } from '@/lib/utils';
 import { IconBook, IconFileText, IconSettings, IconStar, IconPlus } from '@tabler/icons-react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Home, Map } from 'lucide-react';
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar';
 import { motion } from 'framer-motion';
 import LeetLabsLogoDark from '../assets/smart-logo.png';
@@ -98,11 +98,12 @@ const ProfilePage = () => {
   const isPro = user?.subscription === 'PRO';
 
   const links = [
+    { label: 'Home', href: '/', icon: <Home className="h-5 w-5 shrink-0 text-gray-200" /> },
     { label: 'Practice Problems', href: '/problems', icon: <IconBook className="h-5 w-5 shrink-0 text-gray-200" /> },
     { label: 'Sheets Library', href: '/sheets/public', icon: <IconFileText className="h-5 w-5 shrink-0 text-gray-200" /> },
+    { label: 'Roadmaps', href: '/roadmaps', icon: <Map className="h-5 w-5 shrink-0 text-gray-200" /> },
     { label: 'Featured Courses', href: '/courses', icon: <IconStar className="h-5 w-5 shrink-0 text-gray-200" /> },
     { label: 'Contribute', href: '/contribute', icon: <IconPlus className="h-5 w-5 shrink-0 text-gray-200" /> },
-    { label: 'Settings', href: '/settings', icon: <IconSettings className="h-5 w-5 shrink-0 text-gray-200" /> },
     {
       label: 'Logout',
       href: '#',
