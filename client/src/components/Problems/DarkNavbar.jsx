@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import LeetLabsLogoDark from '../../assets/LeetLabs-logo-dark.png'; // Use dark logo
+import LeetLabsLogoDark from '../../assets/Leetlabs-logo-dark.png'; // Use dark logo
 import { cn } from '@/lib/utils';
 import {
   NavigationMenu,
