@@ -7,19 +7,24 @@ const COLORS = {
   blue: '#3b82f6',
   orange: '#f97316',
   purple: '#8b5cf6',
+  yellow: '#f5b210',
+  red: '#ef4444',
 };
 
-const StatCard = ({ title, value, change, icon, color = 'yellow' }) => {
+const StatCard = ({ title, value, secondaryValue, change, icon, color = 'yellow' }) => {
   // Placeholder for dynamic change calculation
-  // Assume `previousValue` is fetched or stored elsewhere
   const calculateChange = (current, previous) => {
-    if (!previous) return 0;
+    if (!previous || previous === 0) return null; // Return null if no previous data
     return Math.round(((current - previous) / previous) * 100);
   };
 
-  // TODO: Replace with actual previous value fetching logic
-  const previousValue = 0; // Placeholder
-  const dynamicChange = typeof value === 'number' ? calculateChange(value, previousValue) : change;
+  const dynamicChange = change !== undefined ? change : null;
+
+  // Format primary value
+  const formattedValue = title === 'Success Rate' ? `${value || 0}%` : value || '0';
+
+  // Format secondary value (for streaks)
+  const formattedSecondaryValue = secondaryValue !== undefined ? secondaryValue : null;
 
   return (
     <motion.div
@@ -32,7 +37,6 @@ const StatCard = ({ title, value, change, icon, color = 'yellow' }) => {
           <div className={`p-3 rounded-xl bg-${color}-500/20`}>
             {React.cloneElement(icon, { className: `h-6 w-6 text-${color}-500` })}
           </div>
-          {dynamicChange !== undefined && (
             <div
               className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                 dynamicChange > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
@@ -41,9 +45,27 @@ const StatCard = ({ title, value, change, icon, color = 'yellow' }) => {
               {dynamicChange > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
               {Math.abs(dynamicChange)}%
             </div>
+        </div>
+        <div className="mb-1">
+          {title === '' ? (
+            <div className="space-y-1 flex justify-between">
+              <h4 className="text-xl font-bold text-white ">
+                   {formattedValue} days
+                   <span className='block text-sm font-normal text-gray-300' >Current Streak</span>
+                </h4>
+              {formattedSecondaryValue !== null && (
+                <h4 className="text-xl font-bold text-white ">
+                   {formattedSecondaryValue} days
+                   <span className='block text-sm font-normal text-gray-300' >Longest Streak</span>
+                </h4>
+              )}
+            </div>
+          ) : (
+            <h3 className="text-2xl font-bold text-white">
+              {formattedValue}
+            </h3>
           )}
         </div>
-        <h3 className="text-2xl font-bold text-white mb-1 whitespace-pre-line">{value || '0'}</h3>
         <p className="text-gray-400 text-sm">{title}</p>
       </div>
     </motion.div>
