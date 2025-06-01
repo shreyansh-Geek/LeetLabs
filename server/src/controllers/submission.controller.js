@@ -80,10 +80,9 @@ export const getTotalSubmissionsForProblem = async (req, res) => {
 export const getStreakData = async (req, res) => {
   const userId = req.user.id;
   try {
-    console.log('Fetching streak data for userId:', userId); // Debug log
     const submissions = await db.submission.findMany({
       where: { userId },
-      select: { createdAt: true }, // Schema uses 'createdAt'
+      select: { createdAt: true },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -97,10 +96,16 @@ export const getStreakData = async (req, res) => {
     }
 
     // Get unique submission dates
-    const submissionDates = [...new Set(submissions.map(sub => {
-      if (!sub.createdAt) return null;
-      return new Date(sub.createdAt).toISOString().split('T')[0];
-    }).filter(date => date))].sort((a, b) => new Date(b) - new Date(a));
+    const submissionDates = [
+      ...new Set(
+        submissions
+          .map(sub => {
+            if (!sub.createdAt) return null;
+            return new Date(sub.createdAt).toISOString().split('T')[0];
+          })
+          .filter(date => date)
+      ),
+    ].sort((a, b) => new Date(b) - new Date(a)); // Newest to oldest
 
     let currentStreak = 0;
     let longestStreak = 0;
@@ -108,42 +113,37 @@ export const getStreakData = async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const oneDayInMs = 24 * 60 * 60 * 1000;
 
-    if (submissionDates.length > 0) {
+    if (submissionDates.length === 1) {
+      // Single submission case
+      const isTodayOrYesterday = new Date(today) - new Date(submissionDates[0]) <= oneDayInMs;
+      currentStreak = isTodayOrYesterday ? 1 : 0;
+      longestStreak = 1;
+    } else if (submissionDates.length > 1) {
+      // Multiple submissions
       const mostRecentDate = submissionDates[0];
       const isTodayOrYesterday = new Date(today) - new Date(mostRecentDate) <= oneDayInMs;
 
       if (isTodayOrYesterday) {
         currentStreak = 1;
-        for (let i = 1; i < submissionDates.length; i++) {
-          const currentDate = new Date(submissionDates[i - 1]);
-          const prevDate = new Date(submissionDates[i]);
-          const diffInDays = (currentDate - prevDate) / oneDayInMs;
-
-          if (diffInDays === 1) {
-            currentStreak += 1;
-            tempStreak += 1;
-          } else if (diffInDays > 1) {
-            longestStreak = Math.max(longestStreak, tempStreak);
-            tempStreak = 1;
-          }
-        }
-        longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
-      } else {
-        currentStreak = 0;
-        for (let i = 1; i < submissionDates.length; i++) {
-          const currentDate = new Date(submissionDates[i - 1]);
-          const prevDate = new Date(submissionDates[i]);
-          const diffInDays = (currentDate - prevDate) / oneDayInMs;
-
-          if (diffInDays === 1) {
-            tempStreak += 1;
-          } else if (diffInDays > 1) {
-            longestStreak = Math.max(longestStreak, tempStreak);
-            tempStreak = 1;
-          }
-        }
-        longestStreak = Math.max(longestStreak, tempStreak);
       }
+
+      for (let i = 1; i < submissionDates.length; i++) {
+        const currentDate = new Date(submissionDates[i - 1]);
+        const prevDate = new Date(submissionDates[i]);
+        const diffInDays = (currentDate - prevDate) / oneDayInMs;
+
+        if (diffInDays === 1) {
+          tempStreak += 1;
+          if (isTodayOrYesterday) {
+            currentStreak += 1;
+          }
+        } else if (diffInDays > 1) {
+          longestStreak = Math.max(longestStreak, tempStreak);
+          tempStreak = 1;
+        }
+      }
+      // Include the last streak
+      longestStreak = Math.max(longestStreak, tempStreak);
     }
 
     return res.status(200).json({
@@ -163,49 +163,76 @@ export const getStreakData = async (req, res) => {
 export const getPerformanceMetrics = async (req, res) => {
   const userId = req.user.id;
   try {
-    console.log('Fetching performance metrics for userId:', userId); // Debug log
+    // Fetch submissions
     const submissions = await db.submission.findMany({
       where: { userId },
-      select: { status: true, time: true }, // Schema uses 'time'
+      select: { status: true, time: true },
     });
 
+    // Calculate success rate
     const totalSubmissions = submissions.length;
-    const acceptedSubmissions = submissions.filter(sub => sub.status === 'ACCEPTED').length;
+    const acceptedSubmissions = submissions.filter(sub => sub.status === 'Accepted').length;
     const successRate = totalSubmissions > 0 ? (acceptedSubmissions / totalSubmissions) * 100 : 0;
 
-    // Calculate average time for accepted submissions
+    // Parse time JSON strings and calculate average time for accepted submissions
     const validTimes = submissions
-      .filter(sub => sub.status === 'ACCEPTED' && sub.time != null && !isNaN(parseFloat(sub.time)))
-      .map(sub => parseFloat(sub.time));
+      .filter(sub => sub.status === 'Accepted' && sub.time != null)
+      .map(sub => {
+        try {
+          const times = JSON.parse(sub.time || '[]');
+          return times
+            .map(t => parseFloat(t.replace(/s|\\|"/g, '').trim()))
+            .filter(t => !isNaN(t));
+        } catch (e) {
+          console.warn(`Invalid time format for submission: ${sub.id}`, e);
+          return [];
+        }
+      })
+      .flat();
     const averageTime = validTimes.length > 0
       ? validTimes.reduce((sum, time) => sum + time, 0) / validTimes.length
       : 0;
 
-    // Calculate ranking and percentile
+    // Calculate solved problems count for the user
     const solvedProblemsCount = await db.problemSolved.count({ where: { userId } });
-    const allUsers = await db.user.count();
 
-    // Fetch users with their problemSolved count using include
-    const users = await db.user.findMany({
-      include: {
+    // Count users with more solved problems
+    const usersWithMoreSolves = await db.user.count({
+      where: {
+        id: { not: userId },
         problemSolved: {
-          select: { id: true },
+          some: {}, // Ensure user has at least one solved problem
+        },
+      },
+      // Use raw query or aggregation to filter by count
+      // Since Prisma doesn't support having, we use a subquery or separate count
+    });
+
+    // To get users with more solves, we need to compare problemSolved counts
+    const allUsers = await db.user.findMany({
+      select: {
+        id: true,
+        _count: {
+          select: { problemSolved: true },
         },
       },
     });
+    const usersWithMoreSolvesCount = allUsers.filter(
+      user => user.id !== userId && user._count.problemSolved > solvedProblemsCount
+    ).length;
 
-    const usersWithMoreSolves = users.filter(user => user.problemSolved.length > solvedProblemsCount).length;
-    const ranking = usersWithMoreSolves + 1;
-    const percentile = allUsers > 0 ? ((allUsers - ranking + 1) / allUsers) * 100 : 0;
+    const ranking = usersWithMoreSolvesCount + 1;
+    const totalUsers = await db.user.count();
+    const percentile = totalUsers > 0 ? ((totalUsers - ranking + 1) / totalUsers) * 100 : 0;
 
     return res.status(200).json({
       success: true,
       message: 'Performance metrics fetched successfully',
       metrics: {
         averageTime: `${Math.floor(averageTime / 60)}:${Math.floor(averageTime % 60).toString().padStart(2, '0')}`,
-        successRate: successRate.toFixed(1),
+        successRate: Number(successRate.toFixed(1)),
         ranking,
-        percentile: percentile.toFixed(1),
+        percentile: Number(percentile.toFixed(1)),
       },
     });
   } catch (error) {
