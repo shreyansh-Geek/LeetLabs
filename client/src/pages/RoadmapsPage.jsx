@@ -8,7 +8,7 @@ import competitive_programming from "../assets/roadmaps/competitive_programming.
 import mobile_development from "../assets/roadmaps/mobile_development.png";
 import  Navbar  from "../components/landing/Navbar";
 import RoadmapCard from "../components/Roadmaps/RoadmapCard.jsx";
-import RoadmapFilter from "../components/roadmaps/RoadmapFilter";
+import RoadmapFilter from "../components/Roadmaps/RoadmapFilter";
 import { cn } from "../lib/utils";
 import { motion } from "framer-motion";
 import { Bot } from "lucide-react";
