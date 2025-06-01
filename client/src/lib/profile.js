@@ -75,31 +75,38 @@ export const useProfile = () => {
     }
   }, [startLoading, endLoading]);
 
-  const fetchPerformanceMetrics = useCallback(async () => {
-    startLoading();
-    try {
-      const response = await apiFetch('/submissions/get-performance-metrics', 'GET');
-      setProfileState((prev) => ({
-        ...prev,
-        performanceMetrics: response.metrics || {
-          successRate: '0.0',
-          averageTime: '0:00',
-          ranking: 0,
-          percentile: '0.0',
-        },
-      }));
-      return response;
-    } catch (error) {
-      console.error('Error fetching performance metrics:', error);
-      setProfileState((prev) => ({
-        ...prev,
-        error: error.message || 'Failed to fetch performance metrics',
-      }));
-      throw error;
-    } finally {
-      endLoading();
-    }
-  }, [startLoading, endLoading]);
+const fetchPerformanceMetrics = useCallback(async () => {
+  startLoading();
+  try {
+    const response = await apiFetch('/submissions/get-performance-metrics', 'GET');
+    console.log('Performance metrics response:', response); // Debug log
+    setProfileState((prev) => ({
+      ...prev,
+      performanceMetrics: response.metrics || {
+        successRate: 0, // Use number
+        averageTime: '0:00',
+        ranking: 0,
+        percentile: 0,
+      },
+    }));
+    return response;
+  } catch (error) {
+    console.error('Error fetching performance metrics:', error);
+    setProfileState((prev) => ({
+      ...prev,
+      error: error.message || 'Failed to fetch performance metrics',
+      performanceMetrics: {
+        successRate: 0,
+        averageTime: '0:00',
+        ranking: 0,
+        percentile: 0,
+      },
+    }));
+    throw error;
+  } finally {
+    endLoading();
+  }
+}, [startLoading, endLoading]);
 
   const fetchUserSolvedProblemsCount = useCallback(async () => {
     startLoading();
