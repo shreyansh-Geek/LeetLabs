@@ -5,8 +5,8 @@
 
 @font-face {
   font-family: 'ARP Display';
-  src: url('/src/assets/fonts/ARPDisplay-240.woff2') format('woff2'),
-       url('/src/assets/fonts/ARPDisplay-240.woff') format('woff');
+  src: url('/src/assets/Fonts/ARPDisplay-240.woff2') format('woff2'),
+       url('/src/assets/Fonts/ARPDisplay-240.woff') format('woff');
   font-weight: 700; /* Bold */
   font-style: normal;
   font-display: swap;
@@ -14,8 +14,8 @@
 
 @font-face {
     font-family: 'Satoshi';
-    src: url('/src/assets/fonts/Satoshi-Regular.woff2') format('woff2'),
-         url('/src/assets/fonts/Satoshi-Regular.woff') format('woff');
+    src: url('/src/assets/Fonts/Satoshi-Regular.woff2') format('woff2'),
+         url('/src/assets/Fonts/Satoshi-Regular.woff') format('woff');
     font-weight: 400; /* Regular */
     font-style: normal;
     font-display: swap;
@@ -23,8 +23,8 @@
 
   @font-face {
     font-family: 'Satoshi';
-    src: url('/src/assets/fonts/Satoshi-Medium.woff2') format('woff2'),
-         url('/src/assets/fonts/Satoshi-Medium.woff') format('woff');
+    src: url('/src/assets/Fonts/Satoshi-Medium.woff2') format('woff2'),
+         url('/src/assets/Fonts/Satoshi-Medium.woff') format('woff');
     font-weight: 500; /* Medium */
     font-style: normal;
     font-display: swap;
