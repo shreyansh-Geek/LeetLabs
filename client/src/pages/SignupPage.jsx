@@ -123,7 +123,7 @@ const SignupPage = () => {
 
   const handleOAuth = (provider) => {
     toast(`Redirecting to ${provider}...`);
-    window.location.href = `http://localhost:8080/api/v1/auth/${provider}`;
+    window.location.href = `${import.meta.env.VITE_BACKEND_BASE_URL}/api/v1/auth/${provider}`;
   };
 
   return (
