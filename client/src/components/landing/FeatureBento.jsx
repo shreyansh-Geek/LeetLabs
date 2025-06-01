@@ -73,6 +73,7 @@ const features = [
     icon: <Zap className="w-6 h-6 text-[#f5b210]" />,
     size: "col-span-1 row-span-1",
     hasFlowDiagram: true,
+    link: "/ai-discussion",
     hasCornerIcon: true,
   },
   {
@@ -113,6 +114,7 @@ const features = [
     icon: <Database className="w-6 h-6 text-[#f5b210]" />,
     size: "col-span-1 row-span-1",
     hasVennDiagram: true,
+    link: "/blogs",
     hasCornerIcon: true,
   },
   {
@@ -122,6 +124,7 @@ const features = [
       " Contribute by adding coding problems, test cases, or curated sheets to help others learn and improve their skills.",
     icon: <Plus className="w-6 h-6 text-[#f5b210]" />,
     size: "col-span-1 row-span-1",
+    link: "/contribute",
     hasCornerIcon: true,
   },
   {
@@ -132,6 +135,7 @@ const features = [
     icon: <Target className="w-6 h-6 text-[#f5b210]" />,
     size: "col-span-1 row-span-1",
     hasGaugeChart: true,
+    link: "/roadmaps",
     hasCornerIcon: true,
   },
 ];

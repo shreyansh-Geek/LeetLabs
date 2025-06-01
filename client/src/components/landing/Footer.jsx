@@ -17,22 +17,22 @@ const socialLinks = [
   {
     name: "Twitter",
     icon: <Twitter className="w-5 h-5" />,
-    url: "https://twitter.com",
+    url: "https://x.com/Shreyanshloop07",
   },
   {
     name: "Instagram",
     icon: <Instagram className="w-5 h-5" />,
-    url: "https://instagram.com",
+    url: "https://www.instagram.com/_shreyanshpandit/",
   },
   {
     name: "Github",
     icon: <Github className="w-5 h-5" />,
-    url: "https://github.com",
+    url: "https://github.com/shreyansh-Geek",
   },
   {
     name: "LinkedIn",
     icon: <Linkedin className="w-5 h-5" />,
-    url: "https://linkedin.com",
+    url: "https://www.linkedin.com/in/shreyansh-pandit-1b47b2203/",
   },
 ];
 
@@ -40,8 +40,8 @@ const socialLinks = [
 const quickLinks = [
   { name: "Problems", url: "/problems" },
   { name: "Profile", url: "/profile" },
-  { name: "Report an Issue", url: "/report-issue" },
-  { name: "Feedback", url: "/feedback" },
+  { name: "Report an Issue", url: "https://docs.google.com/forms/d/e/1FAIpQLSfzayNk_6hxOC0tly4HZ_IuHftMisLqCLc8LKdh28KuwMH_Cw/viewform?usp=header" },
+  { name: "Feedback", url: "https://docs.google.com/forms/d/e/1FAIpQLSe0PvWcAlgISmS1tnsxf4a7iWTET8eWX5ydBPOTFlN8y8Wcvg/viewform?usp=header" },
 ];
 
 // Legal Links
@@ -130,6 +130,7 @@ const Footer = () => {
                 <li key={index}>
                   <a
                     href={link.url}
+                    target="_blank"
                     className="text-sm text-gray-300 satoshi hover:text-[#f5b210] transition-colors duration-300 ease-in-out"
                   >
                     {link.name}
@@ -153,7 +154,7 @@ const Footer = () => {
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-[#f5b210] flex-shrink-0" />
                 <span className="text-sm text-gray-300 satoshi">
-                  support@leetlabs.com
+                  shreyansh@leetlabs.in
                 </span>
               </li>
               <li className="flex items-center space-x-3">
