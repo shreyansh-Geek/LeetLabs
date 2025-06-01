@@ -1,12 +1,10 @@
-// ProfilePage.jsx
 import React, { useState, useEffect } from 'react';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { useSheets } from '@/lib/sheets';
 import { useProfile } from '@/lib/profile';
 import Avatar from 'boring-avatars';
-import { cn } from '@/lib/utils';
-import { IconBook, IconFileText, IconSettings, IconStar, IconPlus } from '@tabler/icons-react';
+import { IconBook, IconFileText, IconStar, IconPlus } from '@tabler/icons-react';
 import { LogOut, Home, Map } from 'lucide-react';
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar';
 import { motion } from 'framer-motion';
@@ -70,6 +68,38 @@ const ProfilePage = () => {
     fetchSkillsData,
   ]);
 
+  // Fallback success rate calculation
+  const calculateSuccessRate = () => {
+    if (!Array.isArray(allSubmissions) || allSubmissions.length === 0) return 0;
+    const acceptedCount = allSubmissions.filter((sub) => sub.status === 'ACCEPTED').length;
+    return Number((acceptedCount / allSubmissions.length * 100).toFixed(1));
+  };
+
+  // Placeholder for dynamic change calculations
+ const calculateChange = (current, previous) => {
+    const curr = Number(current) || 0;
+    const prev = Number(previous) || 0;
+
+    if (curr === 0 && prev === 0) return 0;
+    if (prev === 0 && curr > 0) return 100;
+    if (curr === 0 && prev > 0) return -100;
+
+    const change = Math.round(((curr - prev) / prev) * 100);
+    return change;
+  };
+
+  // Mock previous values (replace with backend data in future)
+  const previousMetrics = {
+    problemsSolved: 0,
+    totalSubmissions: 0,
+    streak: 0,
+    successRate: 0,
+  };
+
+  const successRate = performanceMetrics?.successRate != null
+    ? Number(performanceMetrics.successRate)
+    : calculateSuccessRate();
+
   if (!authLoading && !isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -88,8 +118,16 @@ const ProfilePage = () => {
 
   if (profileError || sheetsError) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-950 text-white">
-        <p>Error loading profile: {profileError || sheetsError}</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-white">
+        <p className="text-red-400 mb-4">
+          Error loading profile: {profileError?.message || sheetsError?.message || 'Unknown error'}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 transition"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -131,7 +169,7 @@ const ProfilePage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col md:flex-row ">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col md:flex-row satoshi">
       <Sidebar open={open} setOpen={setOpen}>
         <SidebarBody className="relative flex flex-col h-screen bg-transparent shadow-lg">
           <div className="flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
@@ -172,50 +210,53 @@ const ProfilePage = () => {
           user={user}
           isPro={isPro}
           isAdmin={isAdmin}
-          performanceMetrics={performanceMetrics}
+          performanceMetrics={{ ...performanceMetrics, successRate }}
           streakData={streakData}
+          allSubmissions={allSubmissions}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Problems Solved"
-            value={problemsSolvedCount}
-            change={12} // TODO: Implement dynamic calculation
-            icon={<CheckCircle />}
-            color="green"
-          />
-          <StatCard
-            title="Total Submissions"
-            value={allSubmissions.length}
-            change={8} // TODO: Implement dynamic calculation
-            icon={<Code />}
-            color="blue"
-          />
-          <StatCard
-            title="Current Streak"
-            value={`${streakData.current} days`}
-            change={5} // TODO: Implement dynamic calculation
-            icon={<Flame />}
-            color="orange"
-          />
-          <StatCard
-            title="Success Rate"
-            value={`${performanceMetrics.successRate}%`}
-            change={-2} // TODO: Implement dynamic calculation
-            icon={<Target />}
-            color="purple"
-          />
-        </div>
+  <StatCard
+    title="Problems Solved"
+    value={problemsSolvedCount}
+    change={calculateChange(problemsSolvedCount, previousMetrics.problemsSolved)}
+    icon={<CheckCircle />}
+    color="green"
+  />
+  <StatCard
+    title="Total Submissions"
+    value={allSubmissions.length}
+    change={calculateChange(allSubmissions.length, previousMetrics.totalSubmissions)}
+    icon={<Code />}
+    color="yellow"
+  />
+  <StatCard
+    title=""
+    value={streakData?.current || 0}
+    secondaryValue={streakData?.longest || 0}
+    change={calculateChange(streakData?.current || 0, previousMetrics.streak)}
+    icon={<Flame />}
+    color="orange"
+  />
+  <StatCard
+    title="Success Rate"
+    value={successRate}
+    change={calculateChange(successRate, previousMetrics.successRate)}
+    icon={<Target />}
+    color="green"
+  />
+</div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
           <div className="xl:col-span-2">
-            <ProgressChart />
+            <ProgressChart data={allSubmissions} />
           </div>
-          <RecentActivity />
-          <ActivityHeatmap />
-          <SkillsRadar />
-          <DifficultyChart />
+          <RecentActivity submissions={allSubmissions} />
+           <div className="xl:col-span-2">
+              <ActivityHeatmap data={allSubmissions} />
+           </div>
+          <SkillsRadar data={skillsData} />
         </div>
         <SubmissionsHistory submissions={allSubmissions} />
-        <div className='mt-10'>
+        <div className="mt-10">
           <QuickActions userSheets={userSheets} />
         </div>
       </div>
