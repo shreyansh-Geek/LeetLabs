@@ -7,7 +7,7 @@ export function cn(...inputs) {
 }
 
 export const apiFetch = async (endpoint, method = 'GET', body = null) => {
-  const baseUrl = 'http://localhost:8080/api/v1';
+  const baseUrl = `${import.meta.env.VITE_BACKEND_BASE_URL}/api/v1`;
   const options = {
     method,
     headers: {
