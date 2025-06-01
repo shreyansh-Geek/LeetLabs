@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Input } from "../components/ui/input";
-import { Button } from "../components/ui/button";
 import Dsa from "../assets/roadmaps/Dsa.png";
 import backend from "../assets/roadmaps/backend.png";
 import frontend from "../assets/roadmaps/frontend.png";

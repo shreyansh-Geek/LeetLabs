@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
 import cPlusPlus from "../../assets/languages/c++.png";
 import goLang from "../../assets/languages/Go-Lang.png";
-import java from "../../assets/languages/java.png";
 import javascript from "../../assets/languages/javascript.png";
 import python from "../../assets/languages/python.png";
 import workspace from "../../assets/pages/workspace.jpg";

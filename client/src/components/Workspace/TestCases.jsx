@@ -16,7 +16,6 @@ const TestCases = ({
   registerTestCase,
   handleTestCaseSubmit,
   testCaseErrors,
-  resetTestCase,
 }) => {
   // Limit displayed test cases to 3, or fewer if less available
   const displayedTestCases = problem?.testcases?.slice(0, 3) || [];

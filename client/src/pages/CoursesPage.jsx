@@ -2,7 +2,6 @@
 import React , { useState } from 'react';
 import { Rocket, Mail } from 'lucide-react';
 import { ShimmerButton } from '../components/magicui/shimmer-button';
-import { cn } from '../lib/utils';
 import Navbar from '../components/landing/Navbar';
 import Footer from '../components/landing/Footer';
 

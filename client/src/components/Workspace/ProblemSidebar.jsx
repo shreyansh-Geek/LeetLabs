@@ -1,7 +1,6 @@
 // components/Problems/ProblemSidebar.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import {
   Home,
   BookOpen,

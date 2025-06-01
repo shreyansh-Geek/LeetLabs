@@ -12,7 +12,6 @@ import {
   Linkedin,
   Copy,
   Trash2,
-  Plus,
   Edit2,
 } from "lucide-react";
 import { TbArrowBigUpFilled } from "react-icons/tb";

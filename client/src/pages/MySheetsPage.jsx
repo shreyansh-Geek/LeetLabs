@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth';
 import { useSheets } from '../lib/sheets';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Search, Plus, ArrowUpDown } from 'lucide-react';
 import {
   DropdownMenu,

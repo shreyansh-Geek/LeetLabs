@@ -10,7 +10,6 @@ import {
   MapPin,
   Phone,
 } from "lucide-react";
-import LeetLabsDark from "../../assets/LeetLabs-logo-dark.png";
 
 // Social Media Links (replace with actual URLs)
 const socialLinks = [
@@ -131,7 +130,7 @@ const Footer = () => {
                   <a
                     href={link.url}
                     target="_blank"
-                    className="text-sm text-gray-300 satoshi hover:text-[#f5b210] transition-colors duration-300 ease-in-out"
+                    className="text-sm text-gray-300 satoshi hover:text-[#f5b210] transition-colors duration-300 ease-in-out" rel="noreferrer"
                   >
                     {link.name}
                   </a>

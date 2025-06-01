@@ -3,11 +3,10 @@ import { Rocket} from 'lucide-react';
 import { ShimmerButton } from '../components/magicui/shimmer-button';
 import { HoverEffect} from '../components/ui/card-hover-effect'; // Adjust path
 import { motion } from 'framer-motion';
-import { cn } from '../lib/utils';
 import Navbar from '../components/landing/Navbar';
 import Footer from '../components/landing/Footer';
 // Placeholder image (replace with actual LeetBot screenshot)
-import leetbotScreenshot from '../assets/pages/leetbot-screenshot.jpg';
+import leetbotScreenshot from '../assets/pages/Leetbot-screenshot.jpg';
 
 export default function AIDiscussionPage() {
 

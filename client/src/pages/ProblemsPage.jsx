@@ -502,7 +502,7 @@ const ProblemsPage = () => {
     {DEMO_PROBLEM_IDS.includes(problem.id) && (
       <Badge className="relative bg-[#ffffff] text-[#000] text-xs font-bold rounded-sm">
         Demo
-        <span class="absolute top-0.5 right-0.5 grid min-h-[12px] min-w-[12px] translate-x-2/4 -translate-y-2/4 place-items-center rounded-full bg-amber-600 py-1 px-1 text-xs text-white"></span>
+        <span className="absolute top-0.5 right-0.5 grid min-h-[12px] min-w-[12px] translate-x-2/4 -translate-y-2/4 place-items-center rounded-full bg-amber-600 py-1 px-1 text-xs text-white"></span>
       </Badge>
       
     )}
