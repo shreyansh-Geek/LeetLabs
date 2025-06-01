@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
-import {X} from 'lucide-react'
 
 const Submissions = ({ submissions, onViewCode }) => {
   // Sort submissions by createdAt (latest first)
@@ -9,20 +8,52 @@ const Submissions = ({ submissions, onViewCode }) => {
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
   );
 
-  // Calculate test case stats with fallback
-  const getTestCaseStats = (testCases) => {
-    if (!Array.isArray(testCases)) return 'N/A';
-    const total = testCases.length;
-    const passed = testCases.filter((tc) => tc.passed).length;
-    return `${passed} / ${total}`;
+  // Calculate runtime average (in ms)
+  const getRuntimeAverage = (submission) => {
+    try {
+      const timeValues = JSON.parse(submission.time || '[]')
+        .map((val) => parseFloat(val.replace(/s|\\|"/g, '').trim()) * 1000) // Convert seconds to ms
+        .filter((val) => !isNaN(val));
+
+      if (timeValues.length === 0) {
+        console.warn(`No valid time data for submission ${submission.id}:`, {
+          time: submission.time,
+        });
+        return 'N/A';
+      }
+
+      const avgRuntime = timeValues.reduce((sum, val) => sum + val, 0) / timeValues.length;
+      return `${avgRuntime.toFixed(2)}ms`;
+    } catch (e) {
+      console.warn(`Failed to parse time for submission ${submission.id}:`, e, {
+        time: submission.time,
+      });
+      return 'N/A';
+    }
   };
 
-  // Calculate marks with fallback
-  const getMarks = (testCases) => {
-    if (!Array.isArray(testCases)) return 'N/A';
-    const total = testCases.length;
-    const passed = testCases.filter((tc) => tc.passed).length;
-    return `${passed} / ${total}`;
+  // Calculate memory average (in MB)
+  const getMemoryAverage = (submission) => {
+    try {
+      const memoryValues = JSON.parse(submission.memory || '[]')
+        .map((val) => parseFloat(val.replace(/KB|\\|"/g, '').trim()) / 1000) // Convert KB to MB
+        .filter((val) => !isNaN(val));
+
+      if (memoryValues.length === 0) {
+        console.warn(`No valid memory data for submission ${submission.id}:`, {
+          memory: submission.memory,
+        });
+        return 'N/A';
+      }
+
+      const avgMemory = memoryValues.reduce((sum, val) => sum + val, 0) / memoryValues.length;
+      return `${avgMemory.toFixed(2)}MB`;
+    } catch (e) {
+      console.warn(`Failed to parse memory for submission ${submission.id}:`, e, {
+        memory: submission.memory,
+      });
+      return 'N/A';
+    }
   };
 
   return (
@@ -37,10 +68,10 @@ const Submissions = ({ submissions, onViewCode }) => {
             <tr className="border-b border-[#333333]">
               <th className="text-left py-2 px-4 font-medium text-[#F5B210]">Time (IST)</th>
               <th className="text-left py-2 px-4 font-medium text-[#F5B210]">Status</th>
-              <th className="text-left py-2 px-4 font-medium text-[#F5B210]">Marks</th>
               <th className="text-left py-2 px-4 font-medium text-[#F5B210]">Lang</th>
-              <th className="text-left py-2 px-4 font-medium text-[#F5B210]">Test Cases</th>
-              <th className="text-left py-2 px-4 font-medium text-[#F5B210]">Code</th>
+              <th className="text-left py-2 px-4 font-medium text-[#F5B210]">Runtime</th>
+              <th className="text-left py-2 px-4 font-medium text-[#F5B210]">Memory</th>
+              <th className="text-center py-2 px-4 font-medium text-[#F5B210]">Code</th>
             </tr>
           </thead>
           <tbody>
@@ -69,9 +100,9 @@ const Submissions = ({ submissions, onViewCode }) => {
                     {submission.status === 'Accepted' ? 'Correct' : submission.status || 'Unknown'}
                   </span>
                 </td>
-                <td className="py-2 px-4">{getMarks(submission.testCases)}</td>
                 <td className="py-2 px-4">{submission.language?.toLowerCase() || 'N/A'}</td>
-                <td className="py-2 px-4">{getTestCaseStats(submission.testCases)}</td>
+                <td className="py-2 px-4">{getRuntimeAverage(submission)}</td>
+                <td className="py-2 px-4">{getMemoryAverage(submission)}</td>
                 <td className="py-2 px-4">
                   <Button
                     variant="ghost"

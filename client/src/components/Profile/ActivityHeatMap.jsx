@@ -70,22 +70,46 @@ const ActivityHeatmap = () => {
   }
 
   // Calculate month labels
+   // Calculate month labels
   const monthLabels = [];
   const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const startDate = new Date(today.getTime() - (52 * 7 - 1) * 24 * 60 * 60 * 1000);
+
   for (let i = 0; i < 12; i++) {
-    const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    const weekIndex = Math.floor((today.getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    if (monthDate < startDate) continue;
+
+    // Find the closest heatmap day to the 1st of the month
+    const daysSinceStart = Math.floor((monthDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+    const weekIndex = Math.floor(daysSinceStart / 7);
+
     if (weekIndex >= 0 && weekIndex < 52) {
-      monthLabels.push({ weekIndex, label: date.toLocaleString('default', { month: 'short' }) });
+      monthLabels.push({
+        weekIndex,
+        label: monthDate.toLocaleString('default', { month: 'short' }),
+      });
     }
+  }
+
+  // Day labels (Sun, Mon, etc.)
+  const dayLabels = ['Sun', '', 'Tue', '', 'Thu', '', 'Sat'];
+
+  if (error) {
+    return (
+      <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl p-6 border border-neutral-700/50 text-white">
+        <h3 className="text-xl font-bold mb-6">Coding Activity</h3>
+        <p className="text-red-400">Error loading activity: {error.message || 'Unknown error'}</p>
+      </div>
+    );
   }
 
   return (
     <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl p-6 border border-neutral-700/50">
-      <h3 className="text-xl font-bold text-white mb-6">Coding Activity</h3>
-      <div className="relative">
+      <h3 className="text-xl font-bold text-white mb-6 flex flex-col ">Coding Activity</h3>
+      <div className="relative w-[100%] h-[280px]">
         {/* Month Labels Container */}
-        <div className="relative mb-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(52, 1fr)', gap: '4px' }}>
+        <div className="relative mb-2 ml-0" style={{ display: 'grid', gridTemplateColumns: 'repeat(52, 1fr)', gap: '4px', }}>
           {monthLabels.map(({ weekIndex, label }) => (
             <div
               key={label}
@@ -102,7 +126,7 @@ const ActivityHeatmap = () => {
             <motion.div
               key={i}
               whileHover={{ scale: 1.5 }}
-              className={`w-3 h-3 rounded-sm ${
+              className={`w-3.5 h-3.5 rounded-md ${
                 day.intensity === 0
                   ? 'bg-neutral-700'
                   : day.intensity === 1

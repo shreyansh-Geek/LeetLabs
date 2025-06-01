@@ -75,6 +75,11 @@ const ProblemsPage = () => {
   const KNOWN_COMPANIES = [
     'Google', 'Amazon', 'Microsoft', 'Facebook', 'Apple', 'Atlassian', 'Uber', 'Bloomberg', 'Adobe', 'Cisco', 'Tcs', 'Infosys', 'Goldman Sachs', 'JP Morgan', 'Paypal', 'Zoho', 'VM Ware', 'Oracle'
   ];
+  const DEMO_PROBLEM_IDS = [
+  'b1148104-6d38-48aa-9f7f-a57d4ee1785c', // Valid Palindrome
+  '487eb8ba-4b44-425c-a5eb-1e2aa1c8f208', // Climbing Stairs
+  '3c4ee5b2-cc9a-41e0-99b8-1ae9f068f1d6', // Container With Most Water
+];
 
   // Load notes from local storage on mount
   useEffect(() => {
@@ -153,43 +158,57 @@ const ProblemsPage = () => {
 
   // Filter and sort problems
   useEffect(() => {
-    let filtered = problems;
+  let filtered = problems;
 
-    if (difficultyFilter.length > 0) {
-      filtered = filtered.filter((problem) => difficultyFilter.includes(problem.difficulty));
-    }
-    if (topicFilter.length > 0) {
-      filtered = filtered.filter((problem) =>
-        problem.tags.some((tag) => topicFilter.includes(tag) && !KNOWN_COMPANIES.includes(tag))
-      );
-    }
-    if (companyFilter.length > 0) {
-      filtered = filtered.filter((problem) =>
-        problem.tags.some((tag) => companyFilter.includes(tag) && KNOWN_COMPANIES.includes(tag))
-      );
-    }
-    if (statusFilter.length > 0) {
-      filtered = filtered.filter((problem) => {
-        const isSolved = userSolvedProblems.some((p) => p.id === problem.id);
-        if (statusFilter.includes('Solved') && isSolved) return true;
-        if (statusFilter.includes('Unsolved') && !isSolved) return true;
-        return false;
-      });
-    }
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (problem) =>
-          problem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          problem.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
+  // Apply filters
+  if (difficultyFilter.length > 0) {
+    filtered = filtered.filter((problem) => difficultyFilter.includes(problem.difficulty));
+  }
+  if (topicFilter.length > 0) {
+    filtered = filtered.filter((problem) =>
+      problem.tags.some((tag) => topicFilter.includes(tag) && !KNOWN_COMPANIES.includes(tag))
+    );
+  }
+  if (companyFilter.length > 0) {
+    filtered = filtered.filter((problem) =>
+      problem.tags.some((tag) => companyFilter.includes(tag) && KNOWN_COMPANIES.includes(tag))
+    );
+  }
+  if (statusFilter.length > 0) {
+    filtered = filtered.filter((problem) => {
+      const isSolved = userSolvedProblems.some((p) => p.id === problem.id);
+      if (statusFilter.includes('Solved') && isSolved) return true;
+      if (statusFilter.includes('Unsolved') && !isSolved) return true;
+      return false;
+    });
+  }
+  if (searchQuery) {
+    filtered = filtered.filter(
+      (problem) =>
+        problem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        problem.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }
+
+  // Sort problems: Demo problems first, then apply other sorting
+  filtered = [...filtered].sort((a, b) => {
+    const isADemo = DEMO_PROBLEM_IDS.includes(a.id);
+    const isBDemo = DEMO_PROBLEM_IDS.includes(b.id);
+
+    // Prioritize demo problems
+    if (isADemo && !isBDemo) return -1;
+    if (!isADemo && isBDemo) return 1;
+
+    // Apply difficulty sorting if selected, otherwise maintain default order
     if (sortBy === 'difficulty') {
       const order = { EASY: 1, MEDIUM: 2, HARD: 3 };
-      filtered = [...filtered].sort((a, b) => order[a.difficulty] - order[b.difficulty]);
+      return order[a.difficulty] - order[b.difficulty];
     }
+    return 0; // Default order for non-demo problems if no sorting
+  });
 
-    setFilteredProblems(filtered);
-  }, [problems, difficultyFilter, topicFilter, companyFilter, statusFilter, searchQuery, sortBy, userSolvedProblems]);
+  setFilteredProblems(filtered);
+}, [problems, difficultyFilter, topicFilter, companyFilter, statusFilter, searchQuery, sortBy, userSolvedProblems]);
 
   const isProblemSolved = (problemId) => {
     return userSolvedProblems.some((problem) => problem.id === problemId);
@@ -473,33 +492,42 @@ const ProblemsPage = () => {
                       className="border-t border-neutral-800 hover:bg-neutral-800/50 transition-colors group"
                     >
                       <td className="p-4">
-                        <Link
-                          to={`/problem/${problem.id}`}
-                          className="text-md font-medium text-white hover:text-[#f5b210] block"
-                        >
-                          {problem.title}
-                        </Link>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {problem.tags.slice(0, 2).map((tag, index) => (
-                            <Badge
-                              key={index}
-                              className="bg-transparent text-[#f5b210] text-xs font-medium rounded-sm"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                          {problem.tags.length > 2 && (
-                            <button
-                              onClick={() => openTagsModal(problem.tags)}
-                              className="cursor-pointer"
-                            >
-                              <Badge className="bg-[#f5b210]/7 text-[#f5b210] text-xs rounded-sm px-1 py-0.5 hover:bg-[#f5b210]/20 transition-colors">
-                                +{problem.tags.length - 2} more
-                              </Badge>
-                            </button>
-                          )}
-                        </div>
-                      </td>
+  <div className="flex items-center gap-2">
+    <Link
+      to={`/problem/${problem.id}`}
+      className="text-md font-medium text-white hover:text-[#f5b210]"
+    >
+      {problem.title}
+    </Link>
+    {DEMO_PROBLEM_IDS.includes(problem.id) && (
+      <Badge className="relative bg-[#ffffff] text-[#000] text-xs font-bold rounded-sm">
+        Demo
+        <span class="absolute top-0.5 right-0.5 grid min-h-[12px] min-w-[12px] translate-x-2/4 -translate-y-2/4 place-items-center rounded-full bg-amber-600 py-1 px-1 text-xs text-white"></span>
+      </Badge>
+      
+    )}
+  </div>
+  <div className="flex flex-wrap gap-1 mt-1">
+    {problem.tags.slice(0, 2).map((tag, index) => (
+      <Badge
+        key={index}
+        className="bg-transparent text-[#f5b210] text-xs font-medium rounded-sm"
+      >
+        {tag}
+      </Badge>
+    ))}
+    {problem.tags.length > 2 && (
+      <button
+        onClick={() => openTagsModal(problem.tags)}
+        className="cursor-pointer"
+      >
+        <Badge className="bg-[#f5b210]/7 text-[#f5b210] text-xs rounded-sm px-1 py-0.5 hover:bg-[#f5b210]/20 transition-colors">
+          +{problem.tags.length - 2} more
+        </Badge>
+      </button>
+    )}
+  </div>
+</td>
                       <td className="p-4">
                         <Badge
                           className={`border rounded-sm font-medium ${getDifficultyColor(
