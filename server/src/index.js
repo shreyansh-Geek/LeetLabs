@@ -24,10 +24,23 @@ app.get('/', (req, res) => {
     res.send('Hello World, this is the LeetLabs server!🔥')
 })
 
+const allowedOrigins = [
+  'http://localhost:5173',     // dev server
+  'http://localhost:4173',     // build preview
+  'https://www.leetlabs.in'    // production
+];
+
 app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true
-}))
+  origin: function (origin, callback) {
+    // Allow requests with no origin (e.g., curl, mobile apps) or if origin is in allowed list
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
 app.use(
   session({
