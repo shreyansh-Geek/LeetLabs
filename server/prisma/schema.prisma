@@ -49,6 +49,7 @@ model User {
   updatedAt DateTime @updatedAt
   googleId String? @unique
   githubId String? @unique
+  plan String? @default("Freemium") // Freemium, Pro, Premium
 
   problems Problem[]
   submission Submission[]
