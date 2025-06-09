@@ -358,14 +358,14 @@ export const getDifficultyStats = async (req, res) => {
 export const getSkillsData = async (req, res) => {
   try {
     const userId = req.user.id;
-    const solvedProblems = await prisma.submission.findMany({
+    const solvedProblems = await db.submission.findMany({
       where: { userId, status: "Accepted" },
       select: { problem: { select: { tags: true } } },
     });
     const uniqueSkills = [...new Set(solvedProblems.flatMap((sub) => sub.problem.tags))];
     const skillsData = await Promise.all(
       uniqueSkills.map(async (skill) => {
-        const problemsCount = await prisma.submission.count({
+        const problemsCount = await db.submission.count({
           where: {
             userId,
             status: "Accepted",
