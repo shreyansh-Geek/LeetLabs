@@ -50,6 +50,8 @@ model User {
   googleId String? @unique
   githubId String? @unique
   plan String? @default("Freemium") // Freemium, Pro, Premium
+  planActivatedAt DateTime? // Tracks when the plan was activated
+  planExpiresAt DateTime? // Optional: for time-limited plans (null for lifetime access)
 
   problems Problem[]
   submission Submission[]
@@ -61,6 +63,29 @@ model User {
   chatMessages ChatMessage[]
   blogs Blog[]
   contribution Contribution[]
+  payments Payment[] 
+}
+
+model Payment {
+  id String @id @default(uuid())
+  userId String
+  razorpayPaymentId String? @unique
+  razorpayOrderId String @unique
+  planName String
+  amount Int
+  status String // e.g., "created", "captured", "failed", "refunded"
+  capturedAt DateTime?
+  paymentMethod String? // e.g., "card", "upi", "netbanking"
+  cardLast4 String? // Last 4 digits of card
+  cardNetwork String? // e.g., "Visa", "MasterCard"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([razorpayPaymentId])
+  @@index([razorpayOrderId])
 }
 
 model Problem {
