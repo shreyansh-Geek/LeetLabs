@@ -1,4 +1,3 @@
-// src/components/Problems/ProblemDetailPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -8,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Code, BookOpen, Clock, PenSquare, MessageSquare, ChevronLeft, ChevronRight, Share2, Maximize, Minimize, X } from 'lucide-react';
+import { CheckCircle, XCircle, Code, BookOpen, Clock, PenSquare, MessageSquare, ChevronLeft, ChevronRight, Share2, Maximize, Minimize, X, Zap, Users } from 'lucide-react';
 import { IconReport, IconSparkles } from '@tabler/icons-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,7 +15,8 @@ import ProblemSidebar from '../components/Workspace/ProblemSidebar';
 import Timer from '../components/Workspace/Timer';
 import { useProblems } from '../lib/problems';
 import { useWorkspace } from '../lib/workspace';
-import { withRetry, getCodeStub } from '../lib/utils';
+import { useAuth } from '@/lib/auth';
+import { apiFetch, withRetry, getCodeStub, cn } from '../lib/utils';
 import {
   Description,
   Editorial,
@@ -37,6 +37,22 @@ const testCaseSchema = z.object({
   output: z.string().min(1, 'Output is required'),
 });
 
+// PlanBadge component
+const PlanBadge = ({ plan }) => (
+  <div
+    className={cn(
+      'inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-sm font-semibold text-black',
+      plan === 'Premium' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-[#f5b210] to-[#ec9913]',
+      'hover:shadow-[0_0_8px_rgba(245,178,16,0.5)] transition-shadow'
+    )}
+    role="status"
+    aria-label={`You are a ${plan === 'Premium' ? 'Premium ' : 'Pro '}`}
+  >
+    {plan === 'Premium' ? <Users className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+    <span>{plan === 'Premium' ? 'Premium ' : 'Pro '}</span>
+  </div>
+);
+
 const ProblemDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -55,6 +71,7 @@ const ProblemDetailPage = () => {
     isSubmitting,
     error: workspaceError,
   } = useWorkspace();
+  const { user, isAuthenticated } = useAuth();
   const [problem, setProblem] = useState(null);
   const [language, setLanguage] = useState('JAVASCRIPT');
   const [code, setCode] = useState('');
@@ -76,6 +93,7 @@ const ProblemDetailPage = () => {
   const [activeTestTab, setActiveTestTab] = useState('test-cases');
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedCode, setSelectedCode] = useState('');
+  const [userPlan, setUserPlan] = useState('Freemium');
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm({
     resolver: zodResolver(notesSchema),
@@ -98,6 +116,27 @@ const ProblemDetailPage = () => {
   } = useForm({
     resolver: zodResolver(testCaseSchema),
   });
+
+  // Fetch user plan
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      if (!isAuthenticated || !user) return;
+
+      try {
+        const response = await apiFetch(`/payments/user/${user.id}`);
+        const payments = response.data || [];
+        const capturedPayment = payments
+          .filter((payment) => payment.status === 'captured' && ['Pro', 'Premium'].includes(payment.planName))
+          .sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt))[0];
+        setUserPlan(capturedPayment ? capturedPayment.planName : 'Freemium');
+      } catch (err) {
+        console.error('Error fetching user plan:', err);
+        setUserPlan('Freemium');
+      }
+    };
+
+    fetchUserPlan();
+  }, [user, isAuthenticated]);
 
   // Navigation handlers
   const handleProblemChange = (problemId) => {
@@ -261,7 +300,7 @@ const ProblemDetailPage = () => {
 
   // Debug loading and error states
   useEffect(() => {
-
+    // No changes needed here
   }, [isProblemLoading, isWorkspaceLoading, problemError, workspaceError, problem, isTestCasesCollapsed, panelSizes]);
 
   return (
@@ -274,8 +313,8 @@ const ProblemDetailPage = () => {
           <div className="flex flex-col items-center justify-center h-full bg-[#1A1A1A] text-gray-300">
             <div className="relative">
               <div className="flex justify-center items-center h-screen w-screen bg-neutral-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#f5b210]"></div>
-      </div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#f5b210]"></div>
+              </div>
               <p className="mt-4 text-sm font-satoshi">Loading Problem...</p>
             </div>
           </div>
@@ -345,7 +384,7 @@ const ProblemDetailPage = () => {
               </div>
               {/* Middle: Timer */}
               <Timer problemId={id} />
-              {/* Right: Full Screen, Share, Pro */}
+              {/* Right: Full Screen, Share, Pro/Premium Badge */}
               <div className="flex items-center gap-2">
                 <TooltipProvider>
                   <Tooltip>
@@ -377,12 +416,16 @@ const ProblemDetailPage = () => {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Link
-                  to="/pricing"
-                  className="px-2 py-1 text-sm rounded bg-[#333333] text-[#f5b210] hover:bg-[#f5b210] hover:text-[#1A1A1A] font-satoshi transition-all duration-300 ease-in-out"
-                >
-                  Switch to Pro
-                </Link>
+                {userPlan === 'Freemium' ? (
+                  <Link
+                    to="/pricing"
+                    className="px-2 py-1 text-sm rounded bg-[#333333] text-[#f5b210] hover:bg-[#f5b210] hover:text-[#1A1A1A] font-satoshi transition-all duration-300 ease-in-out"
+                  >
+                    Upgrade to Pro
+                  </Link>
+                ) : (
+                  <PlanBadge plan={userPlan} />
+                )}
               </div>
             </div>
             {/* Panels */}
