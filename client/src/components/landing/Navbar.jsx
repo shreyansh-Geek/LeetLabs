@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import LeetLabsLogoLight from '../../assets/Leetlabs-logo-light.png';
-import { cn } from '@/lib/utils';
+import { cn, apiFetch } from '@/lib/utils';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -20,7 +20,7 @@ import {
 import { ShimmerButton } from '../magicui/shimmer-button';
 import { useAuth } from '@/lib/auth';
 import Avatar from 'boring-avatars';
-import { LogOut, Zap } from 'lucide-react';
+import { LogOut, Zap, Users } from 'lucide-react';
 
 // Dropdown items
 const discoverItems = [
@@ -73,13 +73,64 @@ const debounce = (func, wait) => {
   };
 };
 
+// Plan Badge Component
+const PlanBadge = ({ plan, isMobile = false }) => {
+  const isPremium = plan === 'Premium';
+  const label = isPremium ? 'Premium ' : 'Pro ';
+  const icon = isPremium ? <Users className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />;
+  const gradient = isPremium
+    ? 'from-yellow-400 to-yellow-600'
+    : 'from-[#f5b210] to-[#ec9913]';
+
+  return (
+    <div
+      className={cn(
+        'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r',
+        gradient,
+        'hover:shadow-[0_0_8px_rgba(245,178,16,0.5)] transition-shadow',
+        isMobile && 'text-sm px-3 py-1.5'
+      )}
+      role="status"
+      aria-label={`You are a ${label}`}
+    >
+      {icon}
+      <span className="ml-1">{label}</span>
+    </div>
+  );
+};
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [userPlan, setUserPlan] = useState('Freemium');
   const location = useLocation();
   const mobileMenuRef = useRef(null);
   const { isAuthenticated, user, isLoading, logout } = useAuth();
+
+  // Fetch user plan
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      if (!isAuthenticated || !user) {
+        setUserPlan('Freemium');
+        return;
+      }
+
+      try {
+        const response = await apiFetch(`/payments/user/${user.id}`);
+        const payments = response.data || [];
+        const capturedPayment = payments
+          .filter((payment) => payment.status === 'captured' && ['Pro', 'Premium'].includes(payment.planName))
+          .sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt))[0];
+        setUserPlan(capturedPayment ? capturedPayment.planName : 'Freemium');
+      } catch (err) {
+        console.error('Error fetching user plan:', err);
+        setUserPlan('Freemium');
+      }
+    };
+
+    fetchUserPlan();
+  }, [user, isAuthenticated]);
 
   // Scroll effect with debouncing
   useEffect(() => {
@@ -296,16 +347,20 @@ export default function Navbar() {
           <div className="hidden sm:flex sm:items-center sm:space-x-4">
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/pricing"
-                  className={cn(
-                    'flex items-center text-gray-600 hover:text-yellow-600 text-sm font-semibold px-3 py-2 rounded-md',
-                    isActive('/pricing') && 'text-yellow-600'
-                  )}
-                >
-                  <Zap className="h-4 w-4 mr-1" />
-                  Switch to Pro
-                </Link>
+                {userPlan === 'Freemium' ? (
+                  <Link
+                    to="/pricing"
+                    className={cn(
+                      'flex items-center text-gray-600 hover:text-yellow-600 text-sm font-semibold px-3 py-2 rounded-md',
+                      isActive('/pricing') && 'text-yellow-600'
+                    )}
+                  >
+                    <Zap className="h-4 w-4 mr-1" />
+                    Switch to Pro
+                  </Link>
+                ) : (
+                  <PlanBadge plan={userPlan} />
+                )}
                 <div className="h-6 w-px bg-gray-300" />
                 <ProfileDropdown />
               </>
@@ -472,16 +527,22 @@ export default function Navbar() {
             {/* Mobile Auth Buttons or Profile */}
             {isAuthenticated ? (
               <div className="px-3 py-2 space-y-2">
-                <Link
-                  to="/pricing"
-                  className={cn(
-                    'flex items-center text-gray-600 hover:text-yellow-600 text-base font-semibold px-3 py-2',
-                    isActive('/pricing') && 'text-yellow-600 bg-gray-100'
-                  )}
-                >
-                  <Zap className="h-5 w-5 mr-2" />
-                  Switch to Pro
-                </Link>
+                {userPlan === 'Freemium' ? (
+                  <Link
+                    to="/pricing"
+                    className={cn(
+                      'flex items-center text-gray-600 hover:text-yellow-600 text-base font-semibold px-3 py-2',
+                      isActive('/pricing') && 'text-yellow-600 bg-gray-100'
+                    )}
+                  >
+                    <Zap className="h-5 w-5 mr-2" />
+                    Switch to Pro
+                  </Link>
+                ) : (
+                  <div className="px-3 py-2">
+                    <PlanBadge plan={userPlan} isMobile />
+                  </div>
+                )}
                 <div className="w-full h-px bg-gray-300" />
                 <ProfileDropdown isMobile />
               </div>

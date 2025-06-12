@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { useSheets } from '@/lib/sheets';
 import { useProfile } from '@/lib/profile';
+import { apiFetch } from '@/lib/utils';
 import Avatar from 'boring-avatars';
 import { IconBook, IconFileText, IconStar, IconPlus } from '@tabler/icons-react';
-import { LogOut, Home, Map } from 'lucide-react';
+import { LogOut, Home, Map, CheckCircle, Code, Flame, Target } from 'lucide-react';
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar';
 import { motion } from 'framer-motion';
 import LeetLabsLogoDark from '../assets/smart-logo.png';
 import StatCard from '@/components/Profile/StatCard';
 import HeroSection from '@/components/Profile/HeroSection';
-import ActivityHeatmap from '@/components/Profile/ActivityHeatMap';
+import ActivityHeatmap from '@/components/Profile/ActivityHeatmap';
 import SkillsRadar from '@/components/Profile/SkillsRadar';
-import DifficultyChart from '@/components/Profile/DifficultyChart';
 import RecentActivity from '@/components/Profile/RecentActivity';
 import ProgressChart from '@/components/Profile/ProgressChart';
 import QuickActions from '@/components/Profile/QuickActions';
 import SubmissionsHistory from '@/components/Profile/SubmissionsHistory';
-import { CheckCircle, Code, Flame, Target } from 'lucide-react';
 
 const ProfilePage = () => {
   const { isAuthenticated, user, isLoading: authLoading, logout } = useAuth();
@@ -33,7 +33,6 @@ const ProfilePage = () => {
     fetchUserSolvedProblemsCount,
     problemsSolvedCount,
     fetchDifficultyStats,
-    difficultyStats,
     fetchSkillsData,
     skillsData,
     isLoading: dataLoading,
@@ -41,6 +40,27 @@ const ProfilePage = () => {
   } = useProfile();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [userPlan, setUserPlan] = useState('Freemium');
+
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      if (!isAuthenticated || !user) return;
+
+      try {
+        const response = await apiFetch(`/payments/user/${user.id}`);
+        const payments = response.data || [];
+        const capturedPayment = payments
+          .filter((payment) => payment.status === 'captured' && ['Pro', 'Premium'].includes(payment.planName))
+          .sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt))[0];
+        setUserPlan(capturedPayment ? capturedPayment.planName : 'Freemium');
+      } catch (err) {
+        console.error('Error fetching user plan:', err);
+        setUserPlan('Freemium');
+      }
+    };
+
+    fetchUserPlan();
+  }, [user, isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -68,27 +88,21 @@ const ProfilePage = () => {
     fetchSkillsData,
   ]);
 
-  // Fallback success rate calculation
   const calculateSuccessRate = () => {
     if (!Array.isArray(allSubmissions) || allSubmissions.length === 0) return 0;
     const acceptedCount = allSubmissions.filter((sub) => sub.status === 'ACCEPTED').length;
     return Number((acceptedCount / allSubmissions.length * 100).toFixed(1));
   };
 
-  // Placeholder for dynamic change calculations
- const calculateChange = (current, previous) => {
+  const calculateChange = (current, previous) => {
     const curr = Number(current) || 0;
     const prev = Number(previous) || 0;
-
     if (curr === 0 && prev === 0) return 0;
     if (prev === 0 && curr > 0) return 100;
     if (curr === 0 && prev > 0) return -100;
-
-    const change = Math.round(((curr - prev) / prev) * 100);
-    return change;
+    return Math.round(((curr - prev) / prev) * 100);
   };
 
-  // Mock previous values (replace with backend data in future)
   const previousMetrics = {
     problemsSolved: 0,
     totalSubmissions: 0,
@@ -118,7 +132,7 @@ const ProfilePage = () => {
 
   if (profileError || sheetsError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-white">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-white satoshi">
         <p className="text-red-400 mb-4">
           Error loading profile: {profileError?.message || sheetsError?.message || 'Unknown error'}
         </p>
@@ -133,7 +147,6 @@ const ProfilePage = () => {
   }
 
   const isAdmin = user?.role === 'ADMIN';
-  const isPro = user?.subscription === 'PRO';
 
   const links = [
     { label: 'Home', href: '/', icon: <Home className="h-5 w-5 shrink-0 text-gray-200" /> },
@@ -156,14 +169,18 @@ const ProfilePage = () => {
   const Logo = () => (
     <Link to="/" className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-white">
       <img src={LeetLabsLogoDark} alt="LeetLabs Logo" className="h-8 w-auto" />
-      <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold whitespace-pre text-xl text-white arp-display">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="font-bold whitespace-pre text-xl text-white arp-display"
+      >
         Leet<span className="text-yellow-500">Labs</span>
       </motion.span>
     </Link>
   );
 
   const LogoIcon = () => (
-    <Link to="/" className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-white">
+    <Link to="/" className="relative z-20 flex items-center py-1 text-sm font-normal text-white">
       <img src={LeetLabsLogoDark} alt="LeetLabs Logo" className="h-8 w-auto" />
     </Link>
   );
@@ -178,7 +195,7 @@ const ProfilePage = () => {
               {links.map((link, idx) => (
                 <SidebarLink
                   key={idx}
-                  link={{ ...link, href: link.href, onClick: link.onClick || undefined }}
+                  link={{ ...link, href: link.href, onClick: link.onClick }}
                   className="text-gray-200 hover:text-yellow-500 transition-all duration-300"
                 />
               ))}
@@ -208,51 +225,50 @@ const ProfilePage = () => {
         <div className="h-18.5 md:h-0"></div>
         <HeroSection
           user={user}
-          isPro={isPro}
+          userPlan={userPlan}
           isAdmin={isAdmin}
           performanceMetrics={{ ...performanceMetrics, successRate }}
           streakData={streakData}
-          allSubmissions={allSubmissions}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-  <StatCard
-    title="Problems Solved"
-    value={problemsSolvedCount}
-    change={calculateChange(problemsSolvedCount, previousMetrics.problemsSolved)}
-    icon={<CheckCircle />}
-    color="green"
-  />
-  <StatCard
-    title="Total Submissions"
-    value={allSubmissions.length}
-    change={calculateChange(allSubmissions.length, previousMetrics.totalSubmissions)}
-    icon={<Code />}
-    color="yellow"
-  />
-  <StatCard
-    title=""
-    value={streakData?.current || 0}
-    secondaryValue={streakData?.longest || 0}
-    change={calculateChange(streakData?.current || 0, previousMetrics.streak)}
-    icon={<Flame />}
-    color="orange"
-  />
-  <StatCard
-    title="Success Rate"
-    value={successRate}
-    change={calculateChange(successRate, previousMetrics.successRate)}
-    icon={<Target />}
-    color="green"
-  />
-</div>
+          <StatCard
+            title="Problems Solved"
+            value={problemsSolvedCount}
+            change={calculateChange(problemsSolvedCount, previousMetrics.problemsSolved)}
+            icon={<CheckCircle className="h-6 w-6" />}
+            color="green"
+          />
+          <StatCard
+            title="Total Submissions"
+            value={allSubmissions.length}
+            change={calculateChange(allSubmissions.length, previousMetrics.totalSubmissions)}
+            icon={<Code className="h-6 w-6" />}
+            color="yellow"
+          />
+          <StatCard
+            title=""
+            value={streakData?.current || 0}
+            secondaryValue={streakData?.longest || 0}
+            change={calculateChange(streakData?.current || 0, previousMetrics.streak)}
+            icon={<Flame />}
+            color="orange"
+          />
+          <StatCard
+            title="Success Rate"
+            value={successRate}
+            change={calculateChange(successRate, previousMetrics.successRate)}
+            icon={<Target className="h-6 w-6" />}
+            color="green"
+          />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
           <div className="xl:col-span-2">
             <ProgressChart data={allSubmissions} />
           </div>
           <RecentActivity submissions={allSubmissions} />
-           <div className="xl:col-span-2">
-              <ActivityHeatmap data={allSubmissions} />
-           </div>
+          <div className="xl:col-span-2">
+            <ActivityHeatmap data={allSubmissions} />
+          </div>
           <SkillsRadar data={skillsData} />
         </div>
         <SubmissionsHistory submissions={allSubmissions} />

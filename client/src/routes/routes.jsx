@@ -26,6 +26,7 @@ const VerifyEmailPage = lazy(() => import("../pages/VerifyEmailPage.jsx"));
 const ForgotPasswordPage = lazy(() => import("../pages/ForgotPasswordPage.jsx"));
 const ResetPasswordPage = lazy(() => import("../pages/ResetPasswordPage.jsx"));
 const SubmissionsPage = lazy(() => import("../pages/SubmissionsPage.jsx"));
+const PaymentHistoryPage = lazy(() => import('../pages/PaymentHistoryPage.jsx'));
 
 const AppRoutes = () =>
   useRoutes([
@@ -129,7 +130,10 @@ const AppRoutes = () =>
       path: "/submissions",
       element: <SubmissionsPage />, // View user submissions (GET /get-user-submissions)
     },
-    // Add more routes as needed (e.g., /dashboard, /profile)
+    {
+      path: '/payment-history',
+      element: <PaymentHistoryPage />,
+    },
     {
       path: "*",
       element: <div>404 - Page Not Found</div>, // Fallback for unmatched routes

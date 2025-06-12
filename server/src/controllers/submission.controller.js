@@ -99,11 +99,11 @@ export const getStreakData = async (req, res) => {
     const submissionDates = [
       ...new Set(
         submissions
-          .map(sub => {
+          .map((sub) => {
             if (!sub.createdAt) return null;
             return new Date(sub.createdAt).toISOString().split('T')[0];
           })
-          .filter(date => date)
+          .filter((date) => date)
       ),
     ].sort((a, b) => new Date(b) - new Date(a)); // Newest to oldest
 
@@ -113,38 +113,50 @@ export const getStreakData = async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const oneDayInMs = 24 * 60 * 60 * 1000;
 
-    if (submissionDates.length === 1) {
-      // Single submission case
-      const isTodayOrYesterday = new Date(today) - new Date(submissionDates[0]) <= oneDayInMs;
-      currentStreak = isTodayOrYesterday ? 1 : 0;
-      longestStreak = 1;
-    } else if (submissionDates.length > 1) {
-      // Multiple submissions
-      const mostRecentDate = submissionDates[0];
-      const isTodayOrYesterday = new Date(today) - new Date(mostRecentDate) <= oneDayInMs;
+    if (submissionDates.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No valid submission dates found',
+        streak: { current: 0, longest: 0 },
+      });
+    }
 
-      if (isTodayOrYesterday) {
-        currentStreak = 1;
-      }
+    // Check if the most recent submission is today or yesterday
+    const mostRecentDate = new Date(submissionDates[0]);
+    const diffFromToday = (new Date(today) - mostRecentDate) / oneDayInMs;
 
+    // Calculate current streak
+    if (diffFromToday <= 1) {
+      currentStreak = 1; // Start with the most recent day
       for (let i = 1; i < submissionDates.length; i++) {
         const currentDate = new Date(submissionDates[i - 1]);
         const prevDate = new Date(submissionDates[i]);
         const diffInDays = (currentDate - prevDate) / oneDayInMs;
 
         if (diffInDays === 1) {
+          currentStreak += 1;
           tempStreak += 1;
-          if (isTodayOrYesterday) {
-            currentStreak += 1;
-          }
         } else if (diffInDays > 1) {
-          longestStreak = Math.max(longestStreak, tempStreak);
-          tempStreak = 1;
+          break; // Current streak ends
         }
       }
-      // Include the last streak
-      longestStreak = Math.max(longestStreak, tempStreak);
     }
+
+    // Calculate longest streak
+    tempStreak = 1; // Reset for longest streak calculation
+    for (let i = 1; i < submissionDates.length; i++) {
+      const currentDate = new Date(submissionDates[i - 1]);
+      const prevDate = new Date(submissionDates[i]);
+      const diffInDays = (currentDate - prevDate) / oneDayInMs;
+
+      if (diffInDays === 1) {
+        tempStreak += 1;
+      } else if (diffInDays > 1) {
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 1;
+      }
+    }
+    longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
 
     return res.status(200).json({
       success: true,

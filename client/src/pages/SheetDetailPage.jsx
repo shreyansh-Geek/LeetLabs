@@ -26,7 +26,7 @@ const SheetDetailPage = () => {
     fetchSheetById,
     fetchSheetProblems,
     cloneSheet,
-    removeProblemFromSheet, // Add new function
+    removeProblemFromSheet,
     clearError,
   } = useSheets();
   const { fetchUserSolvedProblems, userSolvedProblems, isLoading: problemsLoading } = useProblems();
@@ -35,6 +35,8 @@ const SheetDetailPage = () => {
   const [isProblemNotesModalOpen, setIsProblemNotesModalOpen] = useState(false);
   const [currentProblemIdForNotes, setCurrentProblemIdForNotes] = useState(null);
   const [currentProblemNote, setCurrentProblemNote] = useState('');
+  const [isSheetNotesModalOpen, setIsSheetNotesModalOpen] = useState(false);
+  const [currentSheetNote, setCurrentSheetNote] = useState('');
   const [isTagsModalOpen, setIsTagsModalOpen] = useState(false);
   const [currentTags, setCurrentTags] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'title', direction: 'asc' });
@@ -44,6 +46,14 @@ const SheetDetailPage = () => {
     const storedProblemNotes = localStorage.getItem(`problemNotesForSheet-${id}`);
     if (storedProblemNotes) {
       setProblemNotes(JSON.parse(storedProblemNotes));
+    }
+  }, [id]);
+
+  // Load sheet note from local storage
+  useEffect(() => {
+    const storedSheetNote = localStorage.getItem(`sheetNote-${id}`);
+    if (storedSheetNote) {
+      setCurrentSheetNote(storedSheetNote);
     }
   }, [id]);
 
@@ -85,27 +95,27 @@ const SheetDetailPage = () => {
   const sortedProblems = useMemo(() => {
     return [...sheetProblems].sort((a, b) => {
       const { key, direction } = sortConfig;
-      if (key === 'difficulty') {
-        const difficultyOrder = { EASY: 1, MEDIUM: 2, HARD: 3 };
-        const aValue = difficultyOrder[a.difficulty] || 0;
-        const bValue = difficultyOrder[b.difficulty] || 0;
-        return direction === 'asc' ? aValue - bValue : bValue - aValue;
-      } else if (key === 'title') {
-        return direction === 'asc'
-          ? a.title.localeCompare(b.title)
-          : b.title.localeCompare(a.title);
-      } else if (key === 'status') {
-        const aSolved = isProblemSolved(a.id);
-        const bSolved = isProblemSolved(b.id);
-        if (aSolved === bSolved) return 0;
-        if (direction === 'asc') {
-          return aSolved ? -1 : 1;
-        } else {
-          return aSolved ? 1 : -1;
-        }
-      }
-      return 0;
-    });
+  if (key === 'difficulty') {
+    const difficultyOrder = { EASY: 1, MEDIUM: 2, HARD: 3 };
+    const aValue = difficultyOrder[a.difficulty] || 0;
+    const bValue = difficultyOrder[b.difficulty] || 0;
+    return direction === 'asc' ? aValue - bValue : bValue - aValue;
+  } else if (key === 'title') {
+    return direction === 'asc'
+      ? a.title.localeCompare(b.title)
+      : b.title.localeCompare(a.title);
+  } else if (key === 'status') {
+    const aSolved = isProblemSolved(a.id);
+    const bSolved = isProblemSolved(b.id);
+    if (aSolved === bSolved) return 0;
+    if (direction === 'asc') {
+      return aSolved ? -1 : 1;
+    } else {
+      return aSolved ? 1 : -1;
+    }
+  }
+  return 0;
+});
   }, [sheetProblems, userSolvedProblems, sortConfig]);
 
   // Handlers
@@ -113,7 +123,7 @@ const SheetDetailPage = () => {
     try {
       await cloneSheet(id);
       toast.success('Sheet cloned successfully');
-      navigate('/sheet-library');
+      navigate('/sheets/my');
     } catch (err) {
       toast.error(err.message || 'Failed to clone sheet');
     }
@@ -168,6 +178,23 @@ const SheetDetailPage = () => {
     setCurrentProblemNote('');
   };
 
+  const openSheetNotesModal = (note = '') => {
+    setCurrentSheetNote(note);
+    setIsSheetNotesModalOpen(true);
+  };
+
+  const saveSheetNote = () => {
+    localStorage.setItem(`sheetNote-${id}`, currentSheetNote);
+    setIsSheetNotesModalOpen(false);
+    setCurrentSheetNote(currentSheetNote); // Keep the note in state for display
+  };
+
+  const clearSheetNote = () => {
+    localStorage.removeItem(`sheetNote-${id}`);
+    setIsSheetNotesModalOpen(false);
+    setCurrentSheetNote('');
+  };
+
   const openTagsModal = (tags) => {
     setCurrentTags(tags);
     setIsTagsModalOpen(true);
@@ -178,10 +205,6 @@ const SheetDetailPage = () => {
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
     }));
-  };
-
-  const openSheetNotesModal = (note = '') => {
-    toast.info('This button could open a modal for sheet-level notes if implemented.');
   };
 
   if (authLoading || sheetsLoading || problemsLoading) {
@@ -225,7 +248,7 @@ const SheetDetailPage = () => {
             </div>
             <div className="flex items-center gap-3">
               <Button
-                onClick={() => openSheetNotesModal(currentSheet.description)}
+                onClick={() => openSheetNotesModal(currentSheetNote || localStorage.getItem(`sheetNote-${id}`) || '')}
                 className="bg-neutral-800/80 backdrop-blur-sm hover:bg-neutral-700/80 text-gray-200 border border-neutral-600/50 flex items-center gap-2 h-10 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg"
               >
                 <Plus size={16} />
@@ -476,16 +499,16 @@ const SheetDetailPage = () => {
             <TabsContent value="notes">
               <div className="bg-neutral-900/80 backdrop-blur-md rounded-xl shadow-xl border border-neutral-700/30 p-6">
                 <h2 className="text-lg font-semibold text-white mb-4">Sheet-Level Notes</h2>
-                {currentSheet.notes ? (
-                  <p className="text-gray-300 leading-relaxed">{currentSheet.notes}</p>
+                {currentSheetNote || localStorage.getItem(`sheetNote-${id}`) ? (
+                  <p className="text-gray-300 leading-relaxed">{currentSheetNote || localStorage.getItem(`sheetNote-${id}`)}</p>
                 ) : (
                   <p className="text-gray-300">No notes available for this sheet. Add a note to get started.</p>
                 )}
                 <Button
-                  onClick={() => openSheetNotesModal(currentSheet.notes || '')}
+                  onClick={() => openSheetNotesModal(currentSheetNote || localStorage.getItem(`sheetNote-${id}`) || '')}
                   className="mt-4 bg-gradient-to-r from-[#f5b210] to-[#e4a107] hover:from-[#e4a107] hover:to-[#d49206] text-black font-medium rounded-lg shadow-md transition-all duration-300 hover:shadow-lg"
                 >
-                  {currentSheet.notes ? 'Edit Sheet Note' : 'Add Sheet Note'}
+                  {currentSheetNote || localStorage.getItem(`sheetNote-${id}`) ? 'Edit Sheet Note' : 'Add Sheet Note'}
                 </Button>
               </div>
             </TabsContent>
@@ -500,6 +523,15 @@ const SheetDetailPage = () => {
         setCurrentNote={setCurrentProblemNote}
         saveNote={saveProblemNote}
         clearNote={clearProblemNote}
+      />
+
+      <NotesModal
+        isOpen={isSheetNotesModalOpen}
+        onClose={() => setIsSheetNotesModalOpen(false)}
+        currentNote={currentSheetNote}
+        setCurrentNote={setCurrentSheetNote}
+        saveNote={saveSheetNote}
+        clearNote={clearSheetNote}
       />
 
       {isTagsModalOpen && (

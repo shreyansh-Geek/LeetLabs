@@ -8,18 +8,21 @@ import { languageMap, getCodeStub } from '@/lib/utils';
 import SpaceSettingModal from './SpaceSettingModal';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { ConfettiSideCannons } from '@/components/magicui/confetti-side-cannons'; // Import confetti
 
 // Load settings from localStorage with defaults
 const loadEditorSettings = () => {
   const saved = localStorage.getItem('editorSettings');
-  return saved ? JSON.parse(saved) : {
-    editorTheme: 'vs-dark',
-    editorFontSize: 14,
-    minimapEnabled: false,
-    wordWrap: 'off',
-    lineNumbers: 'on',
-    tabSize: 2,
-  };
+  return saved
+    ? JSON.parse(saved)
+    : {
+        editorTheme: 'vs-dark',
+        editorFontSize: 14,
+        minimapEnabled: false,
+        wordWrap: 'off',
+        lineNumbers: 'on',
+        tabSize: 2,
+      };
 };
 
 const PreferenceNav = ({
@@ -95,9 +98,7 @@ const PreferenceNav = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setIsSettingsOpen(true);
-                }}
+                onClick={() => setIsSettingsOpen(true)}
                 className="text-[#b3b3b3] hover:text-[#f5b210] hover:bg-[#2A2A2A] rounded p-1.5 cursor-pointer"
                 aria-label="Open editor settings"
               >
@@ -115,9 +116,7 @@ const PreferenceNav = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setIsTestCasesCollapsed(!isTestCasesCollapsed);
-                }}
+                onClick={() => setIsTestCasesCollapsed(!isTestCasesCollapsed)}
                 className="text-[#b3b3b3] hover:text-[#f5b210] hover:bg-[#2A2A2A] rounded p-1.5 cursor-pointer"
                 aria-label={isTestCasesCollapsed ? 'Expand Test Cases' : 'Collapse Test Cases'}
               >
@@ -154,8 +153,8 @@ const CodeEditor = ({
   setSuccess,
   customTestCases,
   problemId,
-  isRunning, // Add from useWorkspace
-  isSubmitting, // Add from useWorkspace
+  isRunning,
+  isSubmitting,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editorTheme, setEditorTheme] = useState(loadEditorSettings().editorTheme);
@@ -164,6 +163,7 @@ const CodeEditor = ({
   const [wordWrap, setWordWrap] = useState(loadEditorSettings().wordWrap);
   const [lineNumbers, setLineNumbers] = useState(loadEditorSettings().lineNumbers);
   const [tabSize, setTabSize] = useState(loadEditorSettings().tabSize);
+  const [showConfetti, setShowConfetti] = useState(false); // State for confetti
 
   // Save settings to localStorage whenever they change
   useEffect(() => {
@@ -188,45 +188,50 @@ const CodeEditor = ({
   const monacoLanguage = languageMap.find((l) => l.name.toUpperCase() === language.toUpperCase())?.monaco || 'plaintext';
 
   const handleRunCode = async () => {
-  if (!code) {
-    toast.error('Please enter code to run.');
-    return;
-  }
-  try {
-    await runCode(problem, code, language, customTestCases);
-    setShowTestCases(true);
-    setHasRunCode(true);
-    setActiveTestTab('test-results'); // Switch to Test Results tab
-    toast.success('Code executed!');
-  } catch (err) {
-    toast.error('Failed to run code: ' + err.message);
-  }
-};
+    if (!code) {
+      toast.error('Please enter code to run.');
+      return;
+    }
+    try {
+      await runCode(problem, code, language, customTestCases);
+      setShowTestCases(true);
+      setHasRunCode(true);
+      setActiveTestTab('test-results');
+      toast.success('Code executed!');
+    } catch (err) {
+      toast.error('Failed to run code: ' + err.message);
+    }
+  };
 
   const handleSubmitCode = async () => {
-  if (!code) {
-    toast.error('Please enter code to submit.');
-    return;
-  }
-  try {
-    const response = await submitCode(problem, code, language, problemId);
-    setShowTestCases(true);
-    setHasRunCode(true);
-    setActiveTestTab('test-results'); // Switch to Test Results tab
-    if (response.submission.status === 'Accepted') {
-      toast.success('Accepted!', { icon: <CheckCircle className="text-[#166534]" /> });
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 4000);
-    } else {
-      toast.error('Wrong Answer', { icon: <XCircle className="text-[#ef4444]" /> });
+    if (!code) {
+      toast.error('Please enter code to submit.');
+      return;
     }
-  } catch (err) {
-    toast.error('Failed to submit code: ' + err.message);
-  }
-};
+    try {
+      const response = await submitCode(problem, code, language, problemId);
+      setShowTestCases(true);
+      setHasRunCode(true);
+      setActiveTestTab('test-results');
+      if (response.submission.status === 'Accepted') {
+        toast.success('Accepted!', { icon: <CheckCircle className="text-[#166534]" /> });
+        setSuccess(true);
+        setShowConfetti(true); // Trigger confetti
+        setTimeout(() => {
+          setSuccess(false);
+          setShowConfetti(false); // Reset confetti after 3 seconds
+        }, 3000);
+      } else {
+        toast.error('Wrong Answer', { icon: <XCircle className="text-[#ef4444]" /> });
+      }
+    } catch (err) {
+      toast.error('Failed to submit code: ' + err.message);
+    }
+  };
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col relative">
+      <ConfettiSideCannons trigger={showConfetti} /> {/* Add confetti component */}
       <PreferenceNav
         language={language}
         setLanguage={setLanguage}

@@ -1,13 +1,13 @@
-// client/src/pages/PricingPage.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, Rocket } from 'lucide-react';
-
 import { IconUserStar } from '@tabler/icons-react';
-import { cn } from '../lib/utils';
+import { cn, apiFetch } from '../lib/utils';
 import { PricingColumn } from '../components/ui/pricing-column.jsx';
 import { Section } from '../components/ui/section.jsx';
 import Navbar from '../components/landing/Navbar';
 import Footer from '../components/landing/Footer';
+import { toast } from 'sonner';
+import { useAuth } from '../lib/auth';
 
 const pricingPlans = [
   {
@@ -15,21 +15,16 @@ const pricingPlans = [
     description: 'Perfect for beginners starting their coding journey',
     price: 0,
     priceNote: 'No Payment. Free Lifetime access.',
-    cta: {
-      variant: 'glow',
-      label: 'Get Started',
-      action: 'signup', // Will be updated to trigger Razorpay in next step
-    },
+    cta: { variant: 'glow', label: 'Get Started', action: 'signup' },
     features: [
       'Access to 100+ coding problems',
       'Community sheets and challenges',
       'Basic Platform roadmaps',
       'Limited 1 month of AI discussion access',
       'Basic Progress tracking and analytics',
-
     ],
     variant: 'default',
-    className: 'hidden lg:flex ',
+    className: 'hidden lg:flex',
   },
   {
     name: 'Pro',
@@ -37,11 +32,7 @@ const pricingPlans = [
     description: 'For serious coders and job seekers aiming to excel',
     price: 1999,
     priceNote: 'One-time payment. Lifetime access.',
-    cta: {
-      variant: 'glow-brand',
-      label: 'Unlock Pro',
-      action: 'subscribe', // Will be updated to trigger Razorpay
-    },
+    cta: { variant: 'glow-brand', label: 'Unlock Pro', action: 'subscribe' },
     features: [
       'Access to 500+ coding problems',
       'Premium Sheets and Challenges',
@@ -58,11 +49,7 @@ const pricingPlans = [
     description: 'For the elite coders and tech enthusiasts',
     price: 4999,
     priceNote: 'One-time payment. Lifetime access.',
-    cta: {
-      variant: 'glow',
-      label: 'Go Premium',
-      action: 'subscribe', // Will be updated to trigger Razorpay
-    },
+    cta: { variant: 'glow', label: 'Go Premium', action: 'subscribe' },
     features: [
       'Unlimited access to all coding problems',
       'Premium Sheets and Challenges',
@@ -76,56 +63,165 @@ const pricingPlans = [
 ];
 
 export default function PricingPage() {
+  const { user, isAuthenticated } = useAuth();
+  const [userPlan, setUserPlan] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleCtaClick = (action, planName) => {
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      if (!isAuthenticated || !user) {
+        setUserPlan('Freemium');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await apiFetch(`/payments/user/${user.id}`);
+        const payments = response.data || [];
+        // Find the most recent "captured" payment for Pro or Premium
+        const capturedPayment = payments
+          .filter((payment) => payment.status === 'captured' && ['Pro', 'Premium'].includes(payment.planName))
+          .sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt))[0];
+        setUserPlan(capturedPayment ? capturedPayment.planName : 'Freemium');
+      } catch (err) {
+        console.error('Error fetching user plan:', err);
+        setUserPlan('Freemium'); // Default to Freemium on error
+        toast.error('Failed to load subscription status');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserPlan();
+  }, [user, isAuthenticated]);
+
+  const handleCtaClick = async (action, planName, price) => {
     if (action === 'signup') {
-      window.location.href = '/signup'; // Redirect to signup
-    } else if (action === 'subscribe') {
-      alert(`Subscribe to ${planName} plan (Razorpay integration pending)`); // Placeholder
+      window.location.href = '/signup';
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error('Please log in to subscribe');
+      window.location.href = '/login';
+      return;
+    }
+
+    if (userPlan === planName) {
+      toast.info(`You are already subscribed to ${planName}!`);
+      return;
+    }
+
+    if (userPlan === 'Premium' && planName === 'Pro') {
+      toast.info('Your Premium plan already includes all Pro features!');
+      return;
+    }
+
+    try {
+      const amount = price * 100; // Convert to paise
+      const response = await apiFetch('/payments/order', 'POST', { planName, amount });
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+
+      script.onload = () => {
+        const options = {
+          key: response.keyId,
+          amount: response.amount,
+          currency: 'INR',
+          order_id: response.orderId,
+          name: 'LeetLabs',
+          description: `${planName} Plan`,
+          handler: async (paymentResponse) => {
+            try {
+              const verifyResponse = await apiFetch('/payments/order', 'POST', {
+                planName,
+                amount,
+                razorpayPaymentId: paymentResponse.razorpay_payment_id,
+                razorpayOrderId: paymentResponse.razorpay_order_id,
+                razorpaySignature: paymentResponse.razorpay_signature,
+              });
+              toast.success(verifyResponse.message);
+              setUserPlan(planName); // Update local state
+              window.location.href = '/profile';
+            } catch (error) {
+              toast.error('Payment failed: ' + (error.data?.message || 'Verification failed'));
+            }
+          },
+          theme: { color: '#f5b210' },
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', () => toast.error('Payment cancelled or failed'));
+        rzp.open();
+      };
+    } catch (error) {
+      toast.error('Error: ' + (error.data?.message || 'Unable to process payment'));
     }
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
-      <Section className="py-12 mx-0 mt-6">
+      <Section className="py-12 mx-0 sm:mt-6">
         <div className="relative left-0 right-0 w-full bg-gradient-to-r from-[#fec60b] to-[#ec9913] py-2 text-center shadow-md">
-  <div className="absolute inset-0 bg-[#fec60b] animate-pulse" />
-  <div className="relative z-10 flex items-center justify-center gap-4 flex-wrap px-4">
-    <p className="text-lg md:text-md font-medium satoshi">
-      <Rocket className="size-6 inline"></Rocket> LeetLabs is in <span className='font-bold'>Beta</span>! Join now for lifetime access to new problems, roadmaps, and premium features.
-    </p>
-  </div>
-</div>
+          <div className="absolute inset-0 bg-[#fec60b] animate-pulse" />
+          <div className="relative z-10 flex items-center justify-center gap-4 flex-wrap px-4">
+            <p className="text-lg md:text-md font-medium satoshi">
+              <Rocket className="size-6 inline" /> LeetLabs is in <span className="font-bold">Beta</span>! Join now for
+              lifetime access to new problems, roadmaps, and premium features.
+            </p>
+          </div>
+        </div>
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-12 mt-10">
           <div className="flex flex-col items-center gap-4 px-4 text-center sm:gap-8">
-            <h2 className="text-3xl leading-tight font-semibold sm:text-5xl sm:leading-tight text-[#000000] arp-display">
+            <h2 className="text-3xl leading-tight font-semibold sm:text-5xl sm:leading-tight text-[#222222] arp-display">
               Unlock Your Coding Potential
             </h2>
-            <p className="text-md text-gray-500 max-w-[600px] font-medium sm:text-xl satoshi">
+            <p className="text-md text-gray-600 max-w-[600px] font-medium sm:text-xl satoshi">
               Choose a plan that fits your goals. Get lifetime access to LeetLabs resources with no recurring fees.
             </p>
           </div>
-          <div className="max-w-container mx-auto grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 satoshi">
-            {pricingPlans.map((plan) => (
-              <PricingColumn
-                key={plan.name}
-                name={plan.name}
-                icon={plan.icon}
-                description={plan.description}
-                price={plan.price}
-                priceNote={plan.priceNote}
-                cta={plan.cta}
-                features={plan.features}
-                variant={plan.variant}
-                className={cn(plan.className, 'border-[#f5b210] outline-[#f5b210]')}
-                onCtaClick={handleCtaClick}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="text-center text-gray-600">Loading subscription status...</div>
+          ) : (
+            <div className="max-w-6xl mx-auto grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 satoshi px-4">
+              {pricingPlans.map((plan) => {
+                const isSubscribed = userPlan === plan.name;
+                const cta = isSubscribed
+                  ? {
+                      variant: 'default',
+                      label: plan.name === 'Freemium' ? 'Current Plan' : `${plan.name} Unlocked`,
+                      disabled: true,
+                      className: 'bg-green-100 text-green-700 border-green-300 cursor-not-allowed',
+                    }
+                  : plan.cta;
+
+                return (
+                  <PricingColumn
+                    key={plan.name}
+                    name={plan.name}
+                    icon={plan.icon}
+                    description={plan.description}
+                    price={plan.price}
+                    priceNote={plan.priceNote}
+                    cta={cta}
+                    features={plan.features}
+                    variant={isSubscribed ? 'default' : plan.variant}
+                    className={cn(
+                      plan.className,
+                      'border-[#f5b210] outline-[#f5b210]',
+                      isSubscribed && 'bg-green-50'
+                    )}
+                    onCtaClick={() => handleCtaClick(plan.cta.action, plan.name, plan.price)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </Section>
-      
       <Footer />
     </div>
   );

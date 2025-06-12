@@ -41,7 +41,7 @@ const ProblemSidebar = () => {
     },
     {
       label: 'Sheets',
-      href: '/sheets',
+      href: '/sheets/public',
       icon: <FileText className="h-5 w-5" />,
     },
     {
@@ -59,7 +59,7 @@ const ProblemSidebar = () => {
           },
           {
             label: 'Roadmap',
-            href: '/roadmap',
+            href: '/roadmaps',
             icon: <Map className="h-5 w-5" />,
           },
           {
