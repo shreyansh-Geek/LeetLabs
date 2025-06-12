@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, Rocket } from 'lucide-react';
 import { IconUserStar } from '@tabler/icons-react';
 import { cn, apiFetch } from '../lib/utils';
@@ -63,7 +63,37 @@ const pricingPlans = [
 ];
 
 export default function PricingPage() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const [userPlan, setUserPlan] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      if (!isAuthenticated || !user) {
+        setUserPlan('Freemium');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await apiFetch(`/payments/user/${user.id}`);
+        const payments = response.data || [];
+        // Find the most recent "captured" payment for Pro or Premium
+        const capturedPayment = payments
+          .filter((payment) => payment.status === 'captured' && ['Pro', 'Premium'].includes(payment.planName))
+          .sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt))[0];
+        setUserPlan(capturedPayment ? capturedPayment.planName : 'Freemium');
+      } catch (err) {
+        console.error('Error fetching user plan:', err);
+        setUserPlan('Freemium'); // Default to Freemium on error
+        toast.error('Failed to load subscription status');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserPlan();
+  }, [user, isAuthenticated]);
 
   const handleCtaClick = async (action, planName, price) => {
     if (action === 'signup') {
@@ -74,6 +104,16 @@ export default function PricingPage() {
     if (!isAuthenticated) {
       toast.error('Please log in to subscribe');
       window.location.href = '/login';
+      return;
+    }
+
+    if (userPlan === planName) {
+      toast.info(`You are already subscribed to ${planName}!`);
+      return;
+    }
+
+    if (userPlan === 'Premium' && planName === 'Pro') {
+      toast.info('Your Premium plan already includes all Pro features!');
       return;
     }
 
@@ -104,6 +144,7 @@ export default function PricingPage() {
                 razorpaySignature: paymentResponse.razorpay_signature,
               });
               toast.success(verifyResponse.message);
+              setUserPlan(planName); // Update local state
               window.location.href = '/profile';
             } catch (error) {
               toast.error('Payment failed: ' + (error.data?.message || 'Verification failed'));
@@ -123,41 +164,62 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
-      <Section className="py-12 mx-0 mt-6">
+      <Section className="py-12 mx-0 sm:mt-6">
         <div className="relative left-0 right-0 w-full bg-gradient-to-r from-[#fec60b] to-[#ec9913] py-2 text-center shadow-md">
           <div className="absolute inset-0 bg-[#fec60b] animate-pulse" />
           <div className="relative z-10 flex items-center justify-center gap-4 flex-wrap px-4">
             <p className="text-lg md:text-md font-medium satoshi">
-              <Rocket className="size-6 inline" /> LeetLabs is in <span className="font-bold">Beta</span>! Join now for lifetime access to new problems, roadmaps, and premium features.
+              <Rocket className="size-6 inline" /> LeetLabs is in <span className="font-bold">Beta</span>! Join now for
+              lifetime access to new problems, roadmaps, and premium features.
             </p>
           </div>
         </div>
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-12 mt-10">
           <div className="flex flex-col items-center gap-4 px-4 text-center sm:gap-8">
-            <h2 className="text-3xl leading-tight font-semibold sm:text-5xl sm:leading-tight text-[#000000] arp-display">
+            <h2 className="text-3xl leading-tight font-semibold sm:text-5xl sm:leading-tight text-[#222222] arp-display">
               Unlock Your Coding Potential
             </h2>
-            <p className="text-md text-gray-500 max-w-[600px] font-medium sm:text-xl satoshi">
+            <p className="text-md text-gray-600 max-w-[600px] font-medium sm:text-xl satoshi">
               Choose a plan that fits your goals. Get lifetime access to LeetLabs resources with no recurring fees.
             </p>
           </div>
-          <div className="max-w-container mx-auto grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 satoshi">
-            {pricingPlans.map((plan) => (
-              <PricingColumn
-                key={plan.name}
-                name={plan.name}
-                icon={plan.icon}
-                description={plan.description}
-                price={plan.price}
-                priceNote={plan.priceNote}
-                cta={plan.cta}
-                features={plan.features}
-                variant={plan.variant}
-                className={cn(plan.className, 'border-[#f5b210] outline-[#f5b210]')}
-                onCtaClick={() => handleCtaClick(plan.cta.action, plan.name, plan.price)}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="text-center text-gray-600">Loading subscription status...</div>
+          ) : (
+            <div className="max-w-6xl mx-auto grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 satoshi px-4">
+              {pricingPlans.map((plan) => {
+                const isSubscribed = userPlan === plan.name;
+                const cta = isSubscribed
+                  ? {
+                      variant: 'default',
+                      label: plan.name === 'Freemium' ? 'Current Plan' : `${plan.name} Unlocked`,
+                      disabled: true,
+                      className: 'bg-green-100 text-green-700 border-green-300 cursor-not-allowed',
+                    }
+                  : plan.cta;
+
+                return (
+                  <PricingColumn
+                    key={plan.name}
+                    name={plan.name}
+                    icon={plan.icon}
+                    description={plan.description}
+                    price={plan.price}
+                    priceNote={plan.priceNote}
+                    cta={cta}
+                    features={plan.features}
+                    variant={isSubscribed ? 'default' : plan.variant}
+                    className={cn(
+                      plan.className,
+                      'border-[#f5b210] outline-[#f5b210]',
+                      isSubscribed && 'bg-green-50'
+                    )}
+                    onCtaClick={() => handleCtaClick(plan.cta.action, plan.name, plan.price)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </Section>
       <Footer />
