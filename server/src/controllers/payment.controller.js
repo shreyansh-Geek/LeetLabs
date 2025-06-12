@@ -23,15 +23,25 @@ export const handlePayment = async (req, res) => {
         return res.status(400).json({ message: 'Invalid amount for plan' });
       }
 
-      // Generate a short receipt (max 40 chars)
-      const shortUserId = userId.slice(0, 8); // First 8 chars of UUID
-      const shortTimestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-      const receipt = `rcpt_${shortUserId}_${shortTimestamp}`; // e.g., rcpt_12345678_123456
+      const shortUserId = userId.slice(0, 8);
+      const shortTimestamp = Date.now().toString().slice(-6);
+      const receipt = `rcpt_${shortUserId}_${shortTimestamp}`;
 
       const order = await razorpay.orders.create({
         amount,
         currency: 'INR',
         receipt,
+      });
+
+      // Store order details in Payment model
+      await db.payment.create({
+        data: {
+          userId,
+          razorpayOrderId: order.id,
+          planName,
+          amount,
+          status: 'created',
+        },
       });
 
       return res.json({
@@ -41,7 +51,7 @@ export const handlePayment = async (req, res) => {
       });
     }
 
-    // Verify Payment
+    // Verify Payment Signature
     const body = razorpayOrderId + '|' + razorpayPaymentId;
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
@@ -49,19 +59,144 @@ export const handlePayment = async (req, res) => {
       .digest('hex');
 
     if (expectedSignature !== razorpaySignature) {
+      await db.payment.update({
+        where: { razorpayOrderId },
+        data: { status: 'failed' },
+      });
       return res.status(400).json({ message: 'Invalid payment signature' });
     }
 
+    // Check if payment already exists
+    const existingPayment = await db.payment.findUnique({
+      where: { razorpayPaymentId },
+    });
+
+    if (existingPayment && existingPayment.status === 'captured') {
+      // Payment already processed, ensure user plan is updated
+      const user = await db.user.findUnique({ where: { id: userId } });
+      if (user.plan !== planName) {
+        await db.user.update({
+          where: { id: userId },
+          data: {
+            plan: planName,
+            planActivatedAt: new Date(),
+            planExpiresAt: null, // Lifetime access
+          },
+        });
+      }
+      return res.json({ message: 'Payment already processed', plan: planName });
+    }
+
+    // Fetch payment status from Razorpay
+    const payment = await razorpay.payments.fetch(razorpayPaymentId);
+    if (payment.status === 'captured') {
+      // Payment already captured (e.g., via webhook)
+      await db.payment.update({
+        where: { razorpayOrderId },
+        data: {
+          razorpayPaymentId,
+          status: 'captured',
+          capturedAt: new Date(),
+          paymentMethod: payment.method || null, // Optional fields
+          cardLast4: payment.card?.last4 || null,
+          cardNetwork: payment.card?.network || null,
+        },
+      });
+
+      await db.user.update({
+        where: { id: userId },
+        data: {
+          plan: planName,
+          planActivatedAt: new Date(),
+          planExpiresAt: null,
+        },
+      });
+
+      return res.json({ message: 'Payment already processed', plan: planName });
+    }
+
+    // Capture Payment
     await razorpay.payments.capture(razorpayPaymentId, amount, 'INR');
 
+    // Update Payment record
+    await db.payment.update({
+      where: { razorpayOrderId },
+      data: {
+        razorpayPaymentId,
+        status: 'captured',
+        capturedAt: new Date(),
+        paymentMethod: payment.method || null, // Optional fields
+        cardLast4: payment.card?.last4 || null,
+        cardNetwork: payment.card?.network || null,
+      },
+    });
+
+    // Update User Plan
     await db.user.update({
       where: { id: userId },
-      data: { plan: planName },
+      data: {
+        plan: planName,
+        planActivatedAt: new Date(),
+        planExpiresAt: null, // Lifetime access
+      },
     });
 
     return res.json({ message: 'Payment successful', plan: planName });
   } catch (error) {
-    console.error('Payment error:', error);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('Payment error:', {
+      error: error.message,
+      stack: error.stack,
+      userId,
+      razorpayOrderId,
+      razorpayPaymentId,
+    });
+    const errorMessage = error.error?.description || error.message || 'Server error';
+    if (razorpayOrderId) {
+      await db.payment.updateMany({
+        where: { razorpayOrderId, status: 'created' },
+        data: { status: 'failed' },
+      });
+    }
+    return res.status(error.statusCode || 500).json({ message: errorMessage });
+  }
+};
+
+// New function for payment history
+export const getPaymentHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Ensure the user is authorized
+    if (req.user.id !== userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    // Fetch payments
+    const payments = await db.payment.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        planName: true,
+        amount: true,
+        status: true,
+        razorpayPaymentId: true,
+        razorpayOrderId: true,
+        paymentMethod: true, // Optional, will be null if not in schema
+        cardLast4: true,
+        cardNetwork: true,
+        createdAt: true,
+        capturedAt: true,
+      },
+    });
+
+    res.json({ data: payments });
+  } catch (error) {
+    console.error('Error fetching payment history:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+    });
+    res.status(500).json({ message: 'Server error' });
   }
 };
