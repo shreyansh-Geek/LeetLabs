@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import LeetLabsLogoDark from '../../assets/Leetlabs-logo-dark.png'; // Use dark logo
+import LeetLabsLogoDark from '../../assets/Leetlabs-logo-dark.png';
 import { cn } from '@/lib/utils';
 import {
   NavigationMenu,
@@ -19,8 +19,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ShimmerButton } from '../magicui/shimmer-button';
 import { useAuth } from '@/lib/auth';
+import { apiFetch } from '@/lib/utils';
 import Avatar from 'boring-avatars';
-import { LogOut, Zap } from 'lucide-react';
+import { LogOut, Zap, Users } from 'lucide-react';
 
 // Dropdown items
 const discoverItems = [
@@ -73,13 +74,51 @@ const debounce = (func, wait) => {
   };
 };
 
+// PlanBadge component
+const PlanBadge = ({ plan }) => (
+  <div
+    className={cn(
+      'inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold text-black',
+      plan === 'Premium' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-[#f5b210] to-[#ec9913]',
+      'hover:shadow-[0_0_8px_rgba(245,178,16,0.5)] transition-shadow'
+    )}
+    role="status"
+    aria-label={`You are a ${plan === 'Premium' ? 'Premium ' : 'Pro '}`}
+  >
+    {plan === 'Premium' ? <Users className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+    <span>{plan === 'Premium' ? 'Premium ' : 'Pro '}</span>
+  </div>
+);
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [userPlan, setUserPlan] = useState('Freemium');
   const location = useLocation();
   const mobileMenuRef = useRef(null);
   const { isAuthenticated, user, isLoading, logout } = useAuth();
+
+  // Fetch user plan
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      if (!isAuthenticated || !user) return;
+
+      try {
+        const response = await apiFetch(`/payments/user/${user.id}`);
+        const payments = response.data || [];
+        const capturedPayment = payments
+          .filter((payment) => payment.status === 'captured' && ['Pro', 'Premium'].includes(payment.planName))
+          .sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt))[0];
+        setUserPlan(capturedPayment ? capturedPayment.planName : 'Freemium');
+      } catch (err) {
+        console.error('Error fetching user plan:', err);
+        setUserPlan('Freemium');
+      }
+    };
+
+    fetchUserPlan();
+  }, [user, isAuthenticated]);
 
   // Scroll effect with debouncing
   useEffect(() => {
@@ -112,7 +151,7 @@ export default function Navbar() {
       };
 
       document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
+      return () => document.addEventListener('keydown', handleKeyDown);
     }
   }, [isOpen]);
 
@@ -128,7 +167,9 @@ export default function Navbar() {
   const linkClass = (path) =>
     cn(
       'text-gray-200 rounded-md text-sm font-semibold transition-all duration-200 ease-in-out',
-      isActive(path) ? 'text-yellow-500' : 'hover:bg-neutral-800 hover:text-yellow-500  focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
+      isActive(path)
+        ? 'text-yellow-500'
+        : 'hover:bg-neutral-800 hover:text-yellow-500 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
     );
 
   // Profile Dropdown Component
@@ -164,6 +205,11 @@ export default function Navbar() {
           <span className="mt-2 text-sm font-semibold text-gray-200">
             {user?.name || 'Guest'}
           </span>
+          {userPlan !== 'Freemium' && (
+            <div className="mt-2">
+              <PlanBadge plan={userPlan} />
+            </div>
+          )}
         </div>
         <DropdownMenuSeparator className="bg-neutral-800" />
         <DropdownMenuItem asChild>
@@ -311,16 +357,20 @@ export default function Navbar() {
           <div className="hidden sm:flex sm:items-center sm:space-x-4">
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/pricing"
-                  className={cn(
-                    'flex items-center text-gray-200 hover:text-yellow-500 text-sm font-semibold px-3 py-2 rounded-md transition-all duration-200 ease-in-out hover:scale-105 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none',
-                    isActive('/pricing') && 'text-yellow-500'
-                  )}
-                >
-                  <Zap className="h-4 w-4 mr-1" />
-                  Switch to Pro
-                </Link>
+                {userPlan === 'Freemium' ? (
+                  <Link
+                    to="/pricing"
+                    className={cn(
+                      'flex items-center text-gray-200 hover:text-yellow-500 text-sm font-semibold px-3 py-2 rounded-md transition-all duration-200 ease-in-out hover:scale-105 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none',
+                      isActive('/pricing') && 'text-yellow-500'
+                    )}
+                  >
+                    <Zap className="h-4 w-4 mr-1" />
+                    Upgrade to Pro
+                  </Link>
+                ) : (
+                  <PlanBadge plan={userPlan} />
+                )}
                 <div className="h-6 w-px bg-neutral-700" />
                 <ProfileDropdown />
               </>
@@ -338,7 +388,7 @@ export default function Navbar() {
                     borderRadius="7px"
                     shimmerSize="0.15em"
                     background="neutral-800"
-                    className="h-10 px-6 text-sm font-semibold text-gray-200  focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none"
+                    className="h-10 px-6 text-sm font-semibold text-gray-200 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none"
                   >
                     Join For Free
                   </ShimmerButton>
@@ -382,7 +432,9 @@ export default function Navbar() {
             to="/"
             className={cn(
               'block px-3 py-2 text-base font-semibold transition-all duration-200 ease-in-out',
-              isActive('/') ? 'text-yellow-500 bg-neutral-800' : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 hover:scale-105 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
+              isActive('/')
+                ? 'text-yellow-500 bg-neutral-800'
+                : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 hover:scale-105 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
             )}
           >
             Home
@@ -391,7 +443,9 @@ export default function Navbar() {
             to="/problems"
             className={cn(
               'block px-3 py-2 text-base font-semibold transition-all duration-200 ease-in-out',
-              isActive('/problems') ? 'text-yellow-500 bg-neutral-800' : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800  focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
+              isActive('/problems')
+                ? 'text-yellow-500 bg-neutral-800'
+                : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
             )}
           >
             Practice
@@ -433,7 +487,9 @@ export default function Navbar() {
                   to={item.to}
                   className={cn(
                     'block px-3 py-2 text-sm font-semibold transition-all duration-200 ease-in-out',
-                    isActive(item.to) ? 'text-yellow-500 bg-neutral-800' : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
+                    isActive(item.to)
+                      ? 'text-yellow-500 bg-neutral-800'
+                      : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
                   )}
                 >
                   {item.title}
@@ -478,7 +534,9 @@ export default function Navbar() {
                   to={item.to}
                   className={cn(
                     'block px-3 py-2 text-sm font-semibold transition-all duration-200 ease-in-out',
-                    isActive(item.to) ? 'text-yellow-500 bg-neutral-800' : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800  focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
+                    isActive(item.to)
+                      ? 'text-yellow-500 bg-neutral-800'
+                      : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
                   )}
                 >
                   {item.title}
@@ -491,7 +549,9 @@ export default function Navbar() {
             to="/pricing"
             className={cn(
               'block px-3 py-2 text-base font-semibold transition-all duration-200 ease-in-out',
-              isActive('/pricing') ? 'text-yellow-500 bg-neutral-800' : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
+              isActive('/pricing')
+                ? 'text-yellow-500 bg-neutral-800'
+                : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
             )}
           >
             Pricing
@@ -500,16 +560,22 @@ export default function Navbar() {
           {/* Mobile Auth Buttons or Profile */}
           {isAuthenticated ? (
             <div className="px-3 py-2 space-y-2">
-              <Link
-                to="/pricing"
-                className={cn(
-                  'flex items-center text-gray-200 hover:text-yellow-500 text-base font-semibold px-3 py-2 transition-all duration-200 ease-in-out',
-                  isActive('/pricing') && 'text-yellow-500 bg-neutral-800'
-                )}
-              >
-                <Zap className="h-5 w-5 mr-2" />
-                Switch to Pro
-              </Link>
+              {userPlan === 'Freemium' ? (
+                <Link
+                  to="/pricing"
+                  className={cn(
+                    'flex items-center text-gray-200 hover:text-yellow-500 text-base font-semibold px-3 py-2 transition-all duration-200 ease-in-out',
+                    isActive('/pricing') && 'text-yellow-500 bg-neutral-800'
+                  )}
+                >
+                  <Zap className="h-5 w-5 mr-2" />
+                  Upgrade to Pro
+                </Link>
+              ) : (
+                <div className="px-3 py-2">
+                  <PlanBadge plan={userPlan} />
+                </div>
+              )}
               <div className="w-full h-px bg-neutral-700" />
               <ProfileDropdown isMobile />
             </div>
@@ -519,7 +585,9 @@ export default function Navbar() {
                 to="/login"
                 className={cn(
                   'block px-3 py-2 text-base font-semibold border border-neutral-700 transition-all duration-200 ease-in-out',
-                  isActive('/login') ? 'text-yellow-500 bg-neutral-800 border-yellow-500' : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 hover:border-yellow-500 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
+                  isActive('/login')
+                    ? 'text-yellow-500 bg-neutral-800 border-yellow-500'
+                    : 'text-gray-200 hover:text-yellow-500 hover:bg-neutral-800 hover:border-yellow-500 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none'
                 )}
               >
                 Log In
@@ -555,7 +623,9 @@ const ListItem = React.forwardRef(({ className, title, children, to, ...props },
           ref={ref}
           className={cn(
             'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-all duration-200 ease-in-out',
-            isActive ? 'text-yellow-500 bg-neutral-800' : 'text-gray-200 hover:bg-neutral-800 hover:text-yellow-500  focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none',
+            isActive
+              ? 'text-yellow-500 bg-neutral-800'
+              : 'text-gray-200 hover:bg-neutral-800 hover:text-yellow-500 focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:outline-none',
             className
           )}
           {...props}
