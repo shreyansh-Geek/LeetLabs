@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 import LeetLabsLogoDark from '../assets/smart-logo.png';
 import StatCard from '@/components/Profile/StatCard';
 import HeroSection from '@/components/Profile/HeroSection';
-import ActivityHeatmap from '@/components/Profile/ActivityHeatmap';
+import ActivityHeatmap from '@/components/Profile/ActivityHeatMap';
 import SkillsRadar from '@/components/Profile/SkillsRadar';
 import RecentActivity from '@/components/Profile/RecentActivity';
 import ProgressChart from '@/components/Profile/ProgressChart';
