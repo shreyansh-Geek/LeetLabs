@@ -1,91 +1,251 @@
-// client/src/pages/ComingSoonPage.jsx
-import React , { useState } from 'react';
-import { Rocket, Mail } from 'lucide-react';
-import { ShimmerButton } from '../components/magicui/shimmer-button';
-import Navbar from '../components/landing/Navbar';
-import Footer from '../components/landing/Footer';
+// client/src/pages/CoursesPage.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { Rocket, ExternalLink, Star, Copy } from "lucide-react";
+import { ShimmerButton } from "../components/magicui/shimmer-button";
+import { ScratchToReveal } from "../components/magicui/scratch-to-reveal";
+import { motion, AnimatePresence } from "framer-motion";
+import Navbar from "../components/landing/Navbar";
+import Footer from "../components/landing/Footer";
 
-export default function ComingSoonPage() {
+const courses = [
+  {
+    title: "Interview Preparation with JavaScript",
+    description:
+      "Master JavaScript for coding interviews with expert-led lessons, hands-on coding challenges, and real-world problem-solving techniques to ace technical interviews.",
+    rating: 4.8,
+    media: {
+      type: "image",
+      src: "https://imgproxy.learnyst.com/learnyst-user-assets/school-assets/schools/171024/courses/198599/1720795627193batch2_lyst1720795627201.png",
+    },
+    link: "https://courses.chaicode.com/learn/fast-checkout/198599?priceId=0&code=SHREYANS52573&is_affiliate=true&tc=SHREYANS52573",
+  },
+  {
+    title: "Web Development Cohort",
+    description:
+      "Build modern, responsive web applications with this comprehensive full-stack development program, covering front-end, back-end, and deployment best practices.",
+    rating: 4.8,
+    media: {
+      type: "youtube",
+      src: "https://www.youtube.com/embed/yG8JMlldoCE?si=WmrGJEeJ6gW1tRir",
+    },
+    link: "https://courses.chaicode.com/learn/fast-checkout/214297?priceId=0&code=SHREYANS52573&is_affiliate=true&tc=SHREYANS52573",
+  },
+  {
+    title: "Full Stack Data Science",
+    description:
+      "Master end-to-end data science, from data collection and analysis to building and deploying machine learning models, with hands-on projects and expert guidance.",
+    rating: 4.9,
+    media: {
+      type: "youtube",
+      src: "https://www.youtube.com/embed/Kjd-SWpe1do?si=d5sGa4_19jSlaIw6",
+    },
+    link: "https://courses.chaicode.com/learn/fast-checkout/227817?priceId=0&code=SHREYANS52573&is_affiliate=true&tc=SHREYANS52573",
+  },
+  {
+    title: "DevOps for Developers",
+    description:
+      "Streamline development and deployment workflows by mastering DevOps practices, including CI/CD pipelines, containerization, and cloud infrastructure management.",
+    rating: 4.7,
+    media: {
+      type: "youtube",
+      src: "https://www.youtube.com/embed/oBLpqSHc3lA?si=5biCPfN5tvgzFl-9",
+    },
+    link: "https://courses.chaicode.com/learn/fast-checkout/227963?priceId=0&code=SHREYANS52573&is_affiliate=true&tc=SHREYANS52573",
+  },
+  {
+    title: "GenAI with Python 2.0",
+    description:
+      "Dive into generative AI with Python, learning to build intelligent applications, from natural language processing to creative AI models, with practical projects.",
+    rating: 4.6,
+    media: {
+      type: "youtube",
+      src: "https://www.youtube.com/embed/6RHYkwJPJlM?si=GUAxZTWsWcEEVAa-",
+    },
+    link: "https://courses.chaicode.com/learn/fast-checkout/232480?priceId=0&code=SHREYANS52573&is_affiliate=true&tc=SHREYANS52573",
+  },
+];
 
-    const [email, setEmail] = useState('');
-  const [emailStatus, setEmailStatus] = useState(null);
+export default function CoursesPage() {
+  const [revealed, setRevealed] = useState({});
+  const [showDiscountCard, setShowDiscountCard] = useState({});
+  const [copied, setCopied] = useState({});
+  const cardRefs = useRef({});
 
-  const handleNotifySubmission = (e) => {
-    e.preventDefault();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailRegex.test(email)) {
-      setEmailStatus('success');
-      setEmail('');
-      setTimeout(() => setEmailStatus(null), 3000);
-    } else {
-      setEmailStatus('error');
-      setTimeout(() => setEmailStatus(null), 3000);
+  const handleScratchComplete = (index) => {
+    setRevealed((prev) => ({ ...prev, [index]: true }));
+  };
+
+  const toggleDiscountCard = (index) => {
+    setShowDiscountCard((prev) => ({ ...prev, [index]: !prev[index] }));
+  };
+
+  const handleCopyCode = async (index) => {
+    try {
+      await navigator.clipboard.writeText("SHREYANS52573");
+      setCopied((prev) => ({ ...prev, [index]: true }));
+      setTimeout(
+        () => setCopied((prev) => ({ ...prev, [index]: false })),
+        2000
+      );
+    } catch (err) {
+      console.error("Failed to copy:", err);
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      Object.keys(showDiscountCard).forEach((index) => {
+        if (
+          showDiscountCard[index] &&
+          cardRefs.current[index] &&
+          !cardRefs.current[index].contains(event.target)
+        ) {
+          setShowDiscountCard((prev) => ({ ...prev, [index]: false }));
+        }
+      });
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDiscountCard]);
+
   return (
-    <div className="min-h-screen bg-[#ffffff] flex flex-col satoshi">
+    <div className="min-h-screen bg-white flex flex-col satoshi">
       <Navbar />
       {/* Beta Strip */}
-      <div className="relative left-0 right-0 w-full mt-19 bg-gradient-to-r from-[#fec60b] to-[#ec9913] py-2 text-center shadow-md">
-        <div className="absolute inset-0 bg-[#fec60b]/20 animate-pulse" />
-        <div className="relative z-10 flex items-center justify-center gap-4 flex-wrap px-4">
-          <p className="text-lg md:text-md font-medium satoshi text-black">
-            <Rocket className="size-6 inline text-black mr-2" /> LeetLabs is in <span className="font-bold">Beta</span>! Join now for lifetime access to new problems, roadmaps, and premium features.
+      <div className="relative w-full bg-gradient-to-r from-amber-400 to-amber-500 py-3 text-center shadow-sm mt-18.5">
+        <div className="absolute inset-0 bg-amber-400/10 animate-pulse" />
+        <div className="relative z-10 flex items-center justify-center gap-3 px-4">
+          <Rocket className="size-5 text-gray-900" />
+          <p className="text-base font-medium text-gray-900">
+            LeetLabs is in <span className="font-bold">Beta</span>! Use code{" "}
+            <span className="font-bold underline">SHREYANS52573</span> for
+            additional 10% off on these courses!
           </p>
         </div>
       </div>
-      {/* Hero Section */}
-      <section className="relative flex-grow flex items-center justify-center py-20 px-4 overflow-hidden bg-gradient-to-br from-[#111827] to-[#3b82f6]/50 satoshi ">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(245,178,16,0.1),transparent_50%)] opacity-50" />
-        <div className="relative z-10 max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl arp-display font-extrabold text-[#ffffff] mb-6 animate-fade-up">
-            Courses Coming Soon
+      {/* Courses Section */}
+      <section className="flex-grow py-12 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-6 text-center arp-display">
+            Discover Our Featured Courses
           </h1>
-          <p className="text-xl md:text-2xl text-[#d1d5db] max-w-3xl mx-auto mb-10 animate-fade-up delay-200">
-            Unlock your coding potential with expert-led courses on DSA, System Design, and more. Be the first to know.
+          <p className="text-lg text-gray-500 max-w-3xl mx-auto mb-12 text-center">
+            Unlock your potential with expertly crafted courses by{" "}
+            <a
+              href="https://www.chaicode.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#f6a21a] font-bold hover:underline"
+            >
+              ChaiCode
+            </a>{" "}
+            and now featured at LeetLabs. Start your learning journey today.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-up delay-400">
-            <ShimmerButton
-              className="bg-[#f5b210] text-[#ffffff] hover:bg-[#f5b210]/80 text-lg px-8 py-3 rounded-full  font-medium shadow-[0_8px_24px_rgba(59,130,246,0.3)] transition-transform hover:scale-105"
-              onClick={() => (window.location.href = '/signup')}
-            >
-              Join Waitlist
-            </ShimmerButton>
-            <ShimmerButton
-              className="bg-transparent border-2 border-[#f5b210] text-[#f5b210] hover:bg-[#f5b210]/10 text-lg px-8 py-3 rounded-full font-satoshi font-medium transition-transform hover:scale-105"
-              onClick={() => (window.location.href = '/')}
-            >
-              Learn More
-            </ShimmerButton>
-          </div>
-          {/* Waitlist Form */}
-          <div className="mt-12 max-w-md mx-auto animate-fade-up delay-600">
-            <form className="flex flex-col sm:flex-row gap-2" onSubmit={handleNotifySubmission}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-full bg-[#ffffff]/10 text-[#ffffff] placeholder-[#d1d5db] border border-[#ffffff]/20 focus:outline-none focus:ring-2 focus:ring-[#f5b210] font-satoshi"
-                required
-              />
-              <button
-                type="submit"
-                className="px-6 py-3 rounded-full bg-[#f5b210] text-[#111827] font-satoshi font-medium hover:bg-[#f5b210]/80 transition-transform hover:scale-105"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((course, index) => (
+              <div
+                key={index}
+                className="relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
               >
-                <Mail className="size-5 inline mr-2" /> Notify Me
-              </button>
-              {emailStatus === 'success' && (
-                  <p className="text-sm text-green-400 satoshi ">
-                    Subscribed successfully!
+                <div className="relative w-full h-48 sm:h-56 bg-gray-100">
+                  {course.media.type === "image" ? (
+                    <img
+                      src={course.media.src}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <iframe
+                      src={`${course.media.src}&controls=1&rel=0&modestbranding=1`}
+                      title={course.title}
+                      className="w-full h-full"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )}
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-xl font-semibold text-gray-900 line-clamp-2">
+                      {course.title}
+                    </h2>
+                    <div className="flex items-center bg-amber-100 text-amber-800 text-sm font-medium px-2.5 py-1 rounded-full">
+                      <Star className="size-4 mr-1 fill-amber-400" />
+                      {course.rating}
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {course.description}
                   </p>
-                )}
-                {emailStatus === 'error' && (
-                  <p className="text-sm text-red-400 satoshi">
-                    Please enter a valid email.
-                  </p>
-                )}
-            </form>
+                  <div className="flex justify-between items-center gap-4">
+                    <ShimmerButton
+                      shimmerColor="#f5b210"
+                      borderRadius="60px"
+                      shimmerSize="0.15em"
+                      background="black"
+                      className="px-4 py-1.5 text-sm font-semibold group-hover:shadow-[inset_0_-6px_10px_#ffffff3f]"
+                      onClick={() => window.location.assign(course.link)}
+                    >
+                      Enroll Now <ExternalLink className="size-4 inline ml-1" />
+                    </ShimmerButton>
+                    <button
+                      className="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors cursor-pointer"
+                      onClick={() => toggleDiscountCard(index)}
+                    >
+                      Reveal Discount
+                    </button>
+                  </div>
+                </div>
+                <AnimatePresence>
+                  {showDiscountCard[index] && (
+                    <motion.div
+                      ref={(el) => (cardRefs.current[index] = el)}
+                      className="absolute bottom-16 right-6 w-48 h-32 bg-white rounded-lg shadow-xl border border-amber-100 flex items-center justify-center overflow-hidden"
+                      initial={{ scale: 0, opacity: 0, y: 20 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0, opacity: 0, y: 20 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                    >
+                      <ScratchToReveal
+                        width={192}
+                        height={128}
+                        minScratchPercentage={70}
+                        className="flex items-center justify-center rounded-lg"
+                        gradientColors={["#f5b210", "#ec9913", "#ffffff"]}
+                        onComplete={() => handleScratchComplete(index)}
+                      >
+                        <div className="flex flex-col items-center justify-center gap-3 p-2">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {revealed[index]
+                              ? "SHREYANS52573"
+                              : "Scratch to Reveal"}
+                          </p>
+                          {revealed[index] && (
+                            <motion.button
+                              className="flex items-center gap-1 text-xs font-medium text-white bg-amber-400 hover:bg-amber-500 px-4 py-1.5 rounded-full transition-colors"
+                              onClick={() => handleCopyCode(index)}
+                              whileTap={{ scale: 0.95 }}
+                              animate={{
+                                scale: copied[index] ? [1, 1.1, 1] : 1,
+                              }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <Copy className="size-3" />
+                              {copied[index] ? "Copied!" : "Copy Code"}
+                            </motion.button>
+                          )}
+                        </div>
+                      </ScratchToReveal>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
           </div>
         </div>
       </section>
