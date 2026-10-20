@@ -1,5 +1,9 @@
 import { db } from "../utils/db.js";
-import { getJudge0LanguageId, submitBatch, pollBatchResults } from "../utils/judge0.js";
+import {
+  getJudge0LanguageId,
+  submitBatch,
+  pollBatchResults,
+} from "../utils/judge0.js";
 
 export const createProblem = async (req, res) => {
   const {
@@ -46,7 +50,9 @@ export const createProblem = async (req, res) => {
 
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        console.log(`Testcase ${i+1} for language ${language} ------ result ${JSON.stringify(result)} `);
+        console.log(
+          `Testcase ${i + 1} for language ${language} ------ result ${JSON.stringify(result)} `,
+        );
         if (result.status.id !== 3) {
           return res.status(400).json({
             error: `Testcase ${i + 1} failed for language ${language}`,
@@ -54,30 +60,29 @@ export const createProblem = async (req, res) => {
         }
       }
     }
-      const newProblem = await db.problem.create({
-        data: {
-          title,
-          description,
-          difficulty,
-          editorial,
-          tags,
-          examples,
-          constraints,
-          hints,
-          testcases,
-          codeSnippets,
-          referenceSolutions,
-          userId: req.user.id,
-        },
-      });
+    const newProblem = await db.problem.create({
+      data: {
+        title,
+        description,
+        difficulty,
+        editorial,
+        tags,
+        examples,
+        constraints,
+        hints,
+        testcases,
+        codeSnippets,
+        referenceSolutions,
+        userId: req.user.id,
+      },
+    });
 
-      return res.status(201).json({
-        success: true,
-        message: "Problem Created Successfully",
-        problem: newProblem,
-      });
-      
-    } catch (error) {
+    return res.status(201).json({
+      success: true,
+      message: "Problem Created Successfully",
+      problem: newProblem,
+    });
+  } catch (error) {
     console.log(error);
     return res.status(500).json({
       error: "Error While Creating Problem",
@@ -87,7 +92,14 @@ export const createProblem = async (req, res) => {
 
 export const getAllProblems = async (req, res) => {
   try {
-    const problems = await db.problem.findMany();
+    const rawProblems = await db.problem.findMany();
+
+    const problems = rawProblems.map((problem) => ({
+      ...problem,
+      testcases: Array.isArray(problem.testcases)
+        ? problem.testcases.filter((tc) => tc.isHidden !== true)
+        : [],
+    }));
 
     if (!problems) {
       return res.status(404).json({ error: "Problems not found." });
@@ -118,10 +130,17 @@ export const getProblemById = async (req, res) => {
       return res.status(404).json({ error: "Problem not found." });
     }
 
+    const safeProblem = {
+      ...problem,
+      testcases: Array.isArray(problem.testcases)
+        ? problem.testcases.filter((tc) => tc.isHidden !== true)
+        : [],
+    };
+
     return res.status(200).json({
       success: true,
       message: "Problem Fetched Successfully",
-      problem,
+      problem: safeProblem,
     });
   } catch (error) {
     console.log(error);
@@ -157,7 +176,7 @@ export const updateProblemById = async (req, res) => {
     const testResults = [];
     if (referenceSolutions && testcases) {
       for (const [language, solutionCode] of Object.entries(
-        referenceSolutions
+        referenceSolutions,
       )) {
         const languageId = await getJudge0LanguageId(language);
         if (!languageId) {
@@ -182,7 +201,7 @@ export const updateProblemById = async (req, res) => {
           console.log(
             `Testcase ${
               i + 1
-            } for language ${language} ------ result ${JSON.stringify(result)} `
+            } for language ${language} ------ result ${JSON.stringify(result)} `,
           );
           if (result.status.id !== 3) {
             return res.status(400).json({
@@ -229,7 +248,9 @@ export const updateProblemById = async (req, res) => {
 export const deleteProblemById = async (req, res) => {
   const { id } = req.params;
   if (req.user.role !== "ADMIN") {
-    return res.status(401).json({ error: "You are not authorized to delete a problem" });
+    return res
+      .status(401)
+      .json({ error: "You are not authorized to delete a problem" });
   }
 
   try {
@@ -266,14 +287,14 @@ export const getAllProblemsSolvedByUser = async (req, res) => {
           },
         },
       },
-      include:{
+      include: {
         solvedBy: {
           where: {
             userId: req.user.id,
           },
-        }
-      }
-    })
+        },
+      },
+    });
     return res.status(200).json({
       success: true,
       message: "All Problems Solved By User Fetched Successfully",
@@ -296,13 +317,13 @@ export const getUserSolvedProblemsCount = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'User solved problems count fetched successfully',
+      message: "User solved problems count fetched successfully",
       count,
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({
-      error: 'Error while fetching user solved problems count',
+      error: "Error while fetching user solved problems count",
     });
   }
 };
@@ -310,7 +331,7 @@ export const getUserSolvedProblemsCount = async (req, res) => {
 export const getDifficultyStats = async (req, res) => {
   const userId = req.user.id;
   try {
-    console.log('Fetching difficulty stats for userId:', userId); // Debug log
+    console.log("Fetching difficulty stats for userId:", userId); // Debug log
 
     // Fetch solved problems directly from ProblemSolved
     const solvedProblems = await db.problemSolved.findMany({
@@ -323,10 +344,10 @@ export const getDifficultyStats = async (req, res) => {
     });
 
     if (!solvedProblems || solvedProblems.length === 0) {
-      console.log('No solved problems found for userId:', userId);
+      console.log("No solved problems found for userId:", userId);
       return res.status(200).json({
         success: true,
-        message: 'No solved problems found, returning zeroed stats',
+        message: "No solved problems found, returning zeroed stats",
         stats: { easy: 0, medium: 0, hard: 0 },
       });
     }
@@ -334,23 +355,23 @@ export const getDifficultyStats = async (req, res) => {
     // Aggregate by difficulty
     const stats = { easy: 0, medium: 0, hard: 0 };
     solvedProblems.forEach(({ problem }) => {
-      if (problem.difficulty === 'EASY') stats.easy += 1;
-      else if (problem.difficulty === 'MEDIUM') stats.medium += 1;
-      else if (problem.difficulty === 'HARD') stats.hard += 1;
+      if (problem.difficulty === "EASY") stats.easy += 1;
+      else if (problem.difficulty === "MEDIUM") stats.medium += 1;
+      else if (problem.difficulty === "HARD") stats.hard += 1;
     });
 
-    console.log('Difficulty stats for userId:', userId, stats); // Debug log
+    console.log("Difficulty stats for userId:", userId, stats); // Debug log
 
     return res.status(200).json({
       success: true,
-      message: 'Difficulty stats fetched successfully',
+      message: "Difficulty stats fetched successfully",
       stats,
     });
   } catch (error) {
-    console.error('Error in getDifficultyStats:', error.message, error.stack);
+    console.error("Error in getDifficultyStats:", error.message, error.stack);
     return res.status(500).json({
       success: false,
-      error: 'Failed to fetch difficulty stats. Please try again later.',
+      error: "Failed to fetch difficulty stats. Please try again later.",
     });
   }
 };
@@ -362,7 +383,9 @@ export const getSkillsData = async (req, res) => {
       where: { userId, status: "Accepted" },
       select: { problem: { select: { tags: true } } },
     });
-    const uniqueSkills = [...new Set(solvedProblems.flatMap((sub) => sub.problem.tags))];
+    const uniqueSkills = [
+      ...new Set(solvedProblems.flatMap((sub) => sub.problem.tags)),
+    ];
     const skillsData = await Promise.all(
       uniqueSkills.map(async (skill) => {
         const problemsCount = await db.submission.count({
@@ -377,7 +400,7 @@ export const getSkillsData = async (req, res) => {
           level: problemsCount * 10,
           problems: problemsCount,
         };
-      })
+      }),
     );
     res.status(200).json({
       success: true,
