@@ -1,3 +1,4 @@
+
 import bcrypt from "bcryptjs";
 import { db } from "../utils/db.js";
 import { UserRole } from "../generated/prisma/index.js";
@@ -6,43 +7,99 @@ import jwt from "jsonwebtoken";
 import passport from "../utils/passport.js";
 import { sendMail } from "../utils/mailer.js";
 import {
-  registrationMailTemplate, passwordResetMailTemplate} from "../utils/mailTemplates.js";
+  registrationMailTemplate,
+  passwordResetMailTemplate,
+} from "../utils/mailTemplates.js";
+
+// Keep cookie settings identical across password login and OAuth.
+// Localhost uses non-Secure cookies; production requires HTTPS.
+const authCookieBase = {
+  httpOnly: true,
+  path: "/",
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+};
+
+const accessCookieOptions = {
+  ...authCookieBase,
+  maxAge: 24 * 60 * 60 * 1000,
+};
+
+const refreshCookieOptions = {
+  ...authCookieBase,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const clearAuthCookies = (res) => {
+  // Clear cookies created by current and legacy authentication flows.
+  for (const sameSite of ["lax", "none", "strict"]) {
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite,
+    });
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite,
+    });
+  }
+};
 
 export const register = async (req, res) => {
   const { email, password, name } = req.body;
+
   if (!email || !password || !name) {
-    return res.status(400).json({ message: "All fields are required" });
+    return res.status(400).json({
+      message: "All fields are required",
+    });
   }
+
   try {
-    const userExists = await db.user.findUnique({ where: { email: email } });
+    const userExists = await db.user.findUnique({
+      where: { email },
+    });
+
     if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({
+        message: "User already exists",
+      });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const verificationToken = crypto.randomBytes(32).toString("hex");
-    const verificationTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
-
+    const verificationTokenExpiry = new Date(
+      Date.now() + 10 * 60 * 1000
+    );
 
     const user = await db.user.create({
       data: {
-        email: email,
+        email,
         password: hashedPassword,
-        name: name,
+        name,
         role: UserRole.USER,
-        verificationToken: verificationToken,
-        verificationTokenExpiry: verificationTokenExpiry,
+        verificationToken,
+        verificationTokenExpiry,
       },
     });
+
     if (!user) {
       return res.status(400).json({
         message: "User not created/registered",
       });
     }
 
-    const verificationLink = `${process.env.BASE_URL}/api/v1/auth/verifyUser/${verificationToken}`;
+    const verificationLink =
+      `${process.env.BASE_URL}/api/v1/auth/verifyUser/${verificationToken}`;
 
-    const template = registrationMailTemplate({ name, verificationLink });
+    const template = registrationMailTemplate({
+      name,
+      verificationLink,
+    });
 
     await sendMail({
       to: user.email,
@@ -57,12 +114,14 @@ export const register = async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
-        image: user?.image,
+        image: user.image,
       },
     });
   } catch (error) {
-    console.log("Registration Error: ", error);
-    return res.status(500).json({ error: error.message });
+    console.error("Registration Error:", error);
+    return res.status(500).json({
+      error: error.message,
+    });
   }
 };
 
@@ -89,9 +148,10 @@ export const verifyUser = async (req, res) => {
     }
 
     if (user.verificationTokenExpiry < new Date()) {
-      // Token expired -> Generate new token
       const newVerificationToken = crypto.randomBytes(32).toString("hex");
-      const newVerificationTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10mins
+      const newVerificationTokenExpiry = new Date(
+        Date.now() + 10 * 60 * 1000
+      );
 
       await db.user.update({
         where: { id: user.id },
@@ -101,7 +161,9 @@ export const verifyUser = async (req, res) => {
         },
       });
 
-      const verificationLink = `${process.env.BASE_URL}/api/v1/auth/verifyUser/${newVerificationToken}`;
+      const verificationLink =
+        `${process.env.BASE_URL}/api/v1/auth/verifyUser/${newVerificationToken}`;
+
       const template = registrationMailTemplate({
         name: user.name,
         verificationLink,
@@ -120,7 +182,6 @@ export const verifyUser = async (req, res) => {
       });
     }
 
-    // Token valid -> Verify user
     await db.user.update({
       where: { id: user.id },
       data: {
@@ -130,10 +191,10 @@ export const verifyUser = async (req, res) => {
       },
     });
 
-    // Redirect to frontend login page
     return res.redirect(`${process.env.FRONTEND_URL}/login`);
   } catch (error) {
     console.error("Verification Error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -143,112 +204,122 @@ export const verifyUser = async (req, res) => {
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
+
   if (!email || !password) {
-    return res.status(400).json({ message: "All fields are required" });
+    return res.status(400).json({
+      message: "All fields are required",
+    });
   }
+
   try {
-    const user = await db.user.findUnique({ where: { email: email } });
+    const user = await db.user.findUnique({
+      where: { email },
+    });
+
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(400).json({
+        message: "User not found",
+      });
     }
 
-    if (!user.isemailVerified) {  
-      return res.status(400).json({  
-          message: "Please verify your email before logging in."  
-      });  
-  }
+    if (!user.isemailVerified) {
+      return res.status(400).json({
+        message: "Please verify your email before logging in.",
+      });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({
+        message: "Invalid credentials",
+      });
     }
 
     const accessToken = jwt.sign(
-      { id: user.id,
-        role: user.role
-       },
+      {
+        id: user.id,
+        role: user.role,
+      },
       process.env.ACCESSTOKEN_SECRET,
       {
         expiresIn: process.env.ACCESSTOKEN_EXPIRY,
       }
     );
+
     const refreshToken = jwt.sign(
-      { id: user.id,
-        role: user.role
-       },
+      {
+        id: user.id,
+        role: user.role,
+      },
       process.env.REFRESHTOKEN_SECRET,
       {
         expiresIn: process.env.REFRESHTOKEN_EXPIRY,
       }
     );
 
-    // Update refresh token in the database
+    // Store the active refresh token in the database.
     await db.user.update({
       where: { id: user.id },
-      data: { refreshToken: refreshToken },
+      data: { refreshToken },
     });
-
-    const accessCookieOptions = {
-      httpOnly: true,
-      sameSite: "none",
-      secure: process.env.NODE_ENV !== "development",
-      maxAge: 1 * 24 * 60 * 60 * 1000,
-    };
-
-    const refreshCookieOptions = {
-      httpOnly: true,
-      sameSite: "none",
-      secure: process.env.NODE_ENV !== "development",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    };
 
     res.cookie("accessToken", accessToken, accessCookieOptions);
     res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Login successful",
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
-        image: user?.image,
+        image: user.image,
       },
     });
   } catch (error) {
     console.error("Login Error:", error);
-    res.status(500).json({ error: "Login failed" });
+
+    return res.status(500).json({
+      error: "Login failed",
+    });
   }
 };
 
 export const logout = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
 
+    if (!userId) {
+      clearAuthCookies(res);
+
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+    }
+
+    // Revoke the active refresh-token session.
     await db.user.update({
       where: { id: userId },
       data: { refreshToken: null },
     });
 
-    res.clearCookie("accessToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "strict",
-    });
+    clearAuthCookies(res);
 
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "strict",
-    });
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Logout successful",
     });
   } catch (error) {
-    console.error("Logout Error:", error);
-    res.status(500).json({ error: "Failed to log out" });
+    console.error("Logout Error:", error.message);
+
+    clearAuthCookies(res);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to log out",
+    });
   }
 };
 
@@ -272,11 +343,12 @@ export const check = async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
-        image: user?.image,
+        image: user.image,
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Authentication Check Error:", error);
+
     return res.status(400).json({
       message: "Something went wrong",
       success: false,
@@ -286,38 +358,60 @@ export const check = async (req, res) => {
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
+
   if (!email) {
-    return res.status(400).json({ message: "Email is required" });
+    return res.status(400).json({
+      message: "Email is required",
+    });
   }
 
   try {
-    const user = await db.user.findUnique({ where: { email: email } });
+    const user = await db.user.findUnique({
+      where: { email },
+    });
+
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(400).json({
+        message: "User not found",
+      });
     }
+
     const resetPasswordToken = crypto.randomBytes(32).toString("hex");
-    const resetPasswordTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    const resetPasswordTokenExpiry = new Date(
+      Date.now() + 10 * 60 * 1000
+    );
+
     await db.user.update({
       where: { id: user.id },
       data: {
-        resetPasswordToken: resetPasswordToken,
-        resetPasswordTokenExpiry: resetPasswordTokenExpiry,
+        resetPasswordToken,
+        resetPasswordTokenExpiry,
       },
     });
-    const resetLink = `${process.env.BASE_URL}/api/v1/auth/resetPassword/${resetPasswordToken}`;
+
+    const resetLink =
+      `${process.env.BASE_URL}/api/v1/auth/resetPassword/${resetPasswordToken}`;
+
     const mail = passwordResetMailTemplate({
       name: user.name,
-      resetLink: resetLink,
+      resetLink,
     });
+
     await sendMail({
       to: user.email,
       subject: "LeetLabs Reset Password Link",
       htmlMessage: mail,
     });
-    return res.status(200).json({ message: "Email sent successfully" });
+
+    return res.status(200).json({
+      message: "Email sent successfully",
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Something went wrong" });
+    console.error("Forgot Password Error:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
   }
 };
 
@@ -325,27 +419,31 @@ export const resetPassword = async (req, res) => {
   const { resetPasswordToken } = req.params;
   const { newpassword } = req.body;
 
-  if (!resetPasswordToken) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  if (!newpassword) {
-    return res.status(400).json({ message: "All fields are required" });
+  if (!resetPasswordToken || !newpassword) {
+    return res.status(400).json({
+      message: "All fields are required",
+    });
   }
 
   try {
     const user = await db.user.findFirst({
-      where: { resetPasswordToken: resetPasswordToken },
+      where: { resetPasswordToken },
     });
+
     if (!user) {
-      return res.status(400).json({ message: "Invalid or expired token" });
+      return res.status(400).json({
+        message: "Invalid or expired token",
+      });
     }
 
-    
-    if (user.resetPasswordTokenExpiry  < new Date()) {
-      // Token expired -> Generate new token
+    if (
+      !user.resetPasswordTokenExpiry ||
+      user.resetPasswordTokenExpiry < new Date()
+    ) {
       const newResetPasswordToken = crypto.randomBytes(32).toString("hex");
-      const newResetPasswordTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10mins
+      const newResetPasswordTokenExpiry = new Date(
+        Date.now() + 10 * 60 * 1000
+      );
 
       await db.user.update({
         where: { id: user.id },
@@ -355,7 +453,9 @@ export const resetPassword = async (req, res) => {
         },
       });
 
-      const resetLink = `${process.env.BASE_URL}/api/v1/auth/resetPassword/${newResetPasswordToken}`;
+      const resetLink =
+        `${process.env.BASE_URL}/api/v1/auth/resetPassword/${newResetPasswordToken}`;
+
       const mail = passwordResetMailTemplate({
         name: user.name,
         resetLink,
@@ -363,34 +463,44 @@ export const resetPassword = async (req, res) => {
 
       await sendMail({
         to: user.email,
-        subject: "New Verification Email - LeetLabs",
+        subject: "LeetLabs Password Reset Link",
         htmlMessage: mail,
       });
 
       return res.status(400).json({
         success: false,
         message:
-          "Token expired. A new verification email has been sent to your email address.",
+          "Token expired. A new password reset email has been sent to your email address.",
       });
     }
 
     const hashedPassword = await bcrypt.hash(newpassword, 10);
+
     await db.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
         resetPasswordToken: null,
         resetPasswordTokenExpiry: null,
+        refreshToken: null,
       },
     });
-    return res.status(200).json({ message: "Password reset successfully", success: true });
+
+    return res.status(200).json({
+      message: "Password reset successfully",
+      success: true,
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Something went wrong", success: false });
+    console.error("Reset Password Error:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+      success: false,
+    });
   }
 };
 
-// OAuth Routes
+// Google OAuth
 export const googleAuth = passport.authenticate("google", {
   scope: ["profile", "email"],
 });
@@ -404,6 +514,7 @@ export const googleCallback = async (req, res) => {
       process.env.ACCESSTOKEN_SECRET,
       { expiresIn: process.env.ACCESSTOKEN_EXPIRY }
     );
+
     const refreshToken = jwt.sign(
       { id: user.id, role: user.role },
       process.env.REFRESHTOKEN_SECRET,
@@ -415,26 +526,20 @@ export const googleCallback = async (req, res) => {
       data: { refreshToken },
     });
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV !== "development",
-      maxAge: 1 * 24 * 60 * 60 * 1000,
-    });
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV !== "development",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("accessToken", accessToken, accessCookieOptions);
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
-    res.redirect(`${process.env.FRONTEND_URL}/profile`);
+    return res.redirect(`${process.env.FRONTEND_URL}/profile`);
   } catch (error) {
     console.error("Google Callback Error:", error);
-    res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login?error=auth_failed`
+    );
   }
 };
 
+// GitHub OAuth
 export const githubAuth = passport.authenticate("github", {
   scope: ["user:email"],
 });
@@ -448,6 +553,7 @@ export const githubCallback = async (req, res) => {
       process.env.ACCESSTOKEN_SECRET,
       { expiresIn: process.env.ACCESSTOKEN_EXPIRY }
     );
+
     const refreshToken = jwt.sign(
       { id: user.id, role: user.role },
       process.env.REFRESHTOKEN_SECRET,
@@ -459,22 +565,15 @@ export const githubCallback = async (req, res) => {
       data: { refreshToken },
     });
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV !== "development",
-      maxAge: 1 * 24 * 60 * 60 * 1000,
-    });
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV !== "development",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("accessToken", accessToken, accessCookieOptions);
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
-    res.redirect(`${process.env.FRONTEND_URL}/profile`);
+    return res.redirect(`${process.env.FRONTEND_URL}/profile`);
   } catch (error) {
     console.error("GitHub Callback Error:", error);
-    res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login?error=auth_failed`
+    );
   }
 };
