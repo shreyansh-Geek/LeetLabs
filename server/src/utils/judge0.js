@@ -53,7 +53,11 @@ export const getJudge0LanguageId = async (language) => {
     const languages = await getLanguages();
     const requested = String(language).toLowerCase().trim();
 
-    const match = languages.find((item) =>
+    const match =
+    languages.find(
+      (item) => item.name.toLowerCase().trim() === requested
+    ) ??
+    languages.find((item) =>
       item.name.toLowerCase().includes(requested)
     );
 
